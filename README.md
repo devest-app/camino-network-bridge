@@ -46,6 +46,21 @@ Validators play a critical role in the bridge ecosystem. They listen to events e
 - **TransferPrepared:** Signifies that validators have approved the transfer and it's ready for completion.
 - **TransferCompleted:** Marks the successful completion of a transfer.
 
+
+## Security and Trust Enhancements
+One of the critical features of this cross-chain token bridge is the security mechanism implemented to prevent fraudulent or incorrect transfers. Validators play an essential role in maintaining the integrity of the bridge. If validators detect incorrect or fraudulent information in a TransferPrepared event, they have the option to intervene and prevent the transfer from being completed. This proactive measure significantly enhances the security and trustworthiness of the bridge.
+
+### Time-Based Transfer Locking
+In addition to signature verification, the bridge incorporates a time-based locking mechanism to further secure the transfer process. This mechanism leverages the block timestamp to enforce a waiting period before a transfer can be completed. Here's how it works:
+
+- **Lock Window**: Each transfer is associated with a lock_window, a predefined time period during which the transfer is locked and cannot be completed. This period allows validators sufficient time to review and verify the transfer details, ensuring their legitimacy.
+
+- **Block Timestamp**: The smart contract uses the block timestamp as a reference to enforce the lock window. When a transfer is prepared, its timestamp is recorded. The transfer can only be completed after the current block timestamp exceeds the sum of the transfer's timestamp and the lock window duration.
+
+- **Safety Mechanism**: This time-based locking serves as a safety mechanism, providing an additional layer of security. If any issues are detected within the lock window, validators can act to prevent potentially fraudulent or incorrect transfers from being finalized.
+
+- **Event-Driven Validation**: Validators monitor the TransferPrepared and TransferCompleted events within the context of the lock window. They ensure that no premature completions occur and that all transfers undergo thorough validation.
+
 ## Conclusion
 
 This cross-chain token bridge provides a decentralized, secure, and efficient mechanism for transferring tokens between blockchains. By leveraging validator nodes for transfer validation and utilizing smart contracts for managing the transfer process, the bridge ensures interoperability and enhances the utility of tokens across different blockchain ecosystems.
