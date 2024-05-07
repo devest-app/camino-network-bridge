@@ -21,14 +21,14 @@ contract SignatureHandler {
     }
 
     // Generates a hash of transaction details, which can be signed by validators
-    function getMessage(address recipient, uint256 amount, uint256 source_chain, uint256 destionation_chain, address token_in, address token_out, uint256 nonce) 
+    function getMessage(address recipient, uint256 amount, uint256 source_chain, uint256 destionation_chain, address token_in, address token_out, string memory nonce) 
     public pure returns (bytes32) {
         // Encodes transaction details and converts to a bytes32 hash
         return bytesToBytes32(abi.encodePacked(recipient, amount, source_chain, destionation_chain, token_in, token_out, nonce));
     }
 
     // Verifies if the provided signatures for a message are valid and from validators
-    function verifySignatures(address recipient, uint256 amount, uint256 source_chain, uint256 destionation_chain, address token_in, address token_out, uint256 nonce, 
+    function verifySignatures(address recipient, uint256 amount, uint256 source_chain, uint256 destionation_chain, address token_in, address token_out, string memory nonce, 
     bytes[] memory signatures) internal view returns (bool) {
         uint256 count = 0; // Counter for valid signatures
 

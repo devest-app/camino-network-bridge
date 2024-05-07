@@ -16,7 +16,6 @@ contract DvBridge is SignatureHandler, TransferManager, Context {
 
     // Events for different stages of the cross-chain transfer process
     event TransferInitiated(address sender, address recipient, uint256 amount, uint256 source_chain, uint256 destination_chain, address token_in, address token_out);
-    event TransferPrepared(address recipient, uint256 amount, uint256 source_chain, uint256 destination_chain, address token_in, address token_out, uint256 nonce);
     event TransferCompleted(string transfer_id, address msg_sender);
 
     // Constructor to initialize the contract with chain ID and validators
@@ -37,16 +36,13 @@ contract DvBridge is SignatureHandler, TransferManager, Context {
         __allowance(_msgSender(), amount, token_in);
         __transfer(address(this), amount, token_in);
 
-        // TODO: Implement fee handling
-
         // Emit event for transfer initiation
         emit TransferInitiated(_msgSender(), recipient, amount, source_chain, destination_chain, token_in, token_out);
         
         return true;
     }
 
-    // Prepares a transfer from another chain with validators' signatures
-    function prepareTransfer(address recipient, uint256 amount, uint256 source_chain, uint256 destination_chain, address token_in, address token_out, uint256 nonce, bytes[] memory signatures) 
+    function completeTransfer(address recipient, uint256 amount, uint256 source_chain, uint256 destination_chain, address token_in, address token_out, string memory nonce, bytes[] memory signatures) 
     public payable onlyValidator(_msgSender()) returns (bool) {
         // Validation checks
         require(recipient != address(0), "Recipient cannot be zero address");
@@ -61,31 +57,10 @@ contract DvBridge is SignatureHandler, TransferManager, Context {
             emit SignatureError(_msgSender());
         }
 
-        // Create a transfer record
-        createTransferRecord(recipient, amount, source_chain, token_in, token_out, nonce);        
-
-        // Emit event for transfer preparation
-        emit TransferPrepared(recipient, amount, source_chain, destination_chain, token_in, token_out, nonce);
+        // Complete the transfer by sending tokens to the recipient
+        _completeTransfer(recipient, amount, source_chain, token_in, token_out, nonce);
         
         return true;
     }
 
-    // Completes a transfer by sending tokens to the recipient
-    function completeTransfer(string memory transfer_id) public payable onlyValidator(_msgSender()) safeToTransfer(transfer_id) returns (bool) {
-        // Complete the transfer and mark it as such
-        _completeTransfer(transfer_id);
-
-        // Emit event for transfer completion
-        emit TransferCompleted(transfer_id, _msgSender());
-        
-        return true;
-    }
-
-    // Locks a transfer, preventing it from being completed
-    function lockTransfer(string memory transfer_id) public payable onlyValidator(_msgSender()) returns (bool) {
-        // Lock the transfer
-        _lockTransfer(transfer_id);
-    
-        return true;
-    }
 }
