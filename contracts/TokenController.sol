@@ -7,25 +7,6 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 // A contract to manage token transfers, especially for cross-chain operations
 contract TokenController {
 
-    // Mapping to manage allowed transfers between token pairs on different chains
-    mapping (uint256 => mapping(address => address)) public allowed_transfers;
-
-    // The constructor is empty and can be omitted for simplicity
-    constructor(){}
-
-    // Allows the addition of new token pairs for cross-chain transfers
-    // `chain_id` represents the target blockchain
-    // `token_in` is the token address on the current chain
-    // `token_out` is the corresponding token address on the target chain
-    function addAllowedTransfer(uint256 chain_id, address token_in, address token_out) public {
-        allowed_transfers[chain_id][token_in] = token_out;
-    }
-
-    // Checks if a specified token transfer is allowed based on previously added pairs
-    function isTransferAllowed(uint256 chain_id, address token_in, address token_out) public view returns (bool) {
-        return allowed_transfers[chain_id][token_in] == token_out;
-    }
-
     // Internal function to transfer tokens or native cryptocurrency (like ETH)
     // `receiver` is the address to receive the tokens or ETH
     // `amount` specifies how much to transfer

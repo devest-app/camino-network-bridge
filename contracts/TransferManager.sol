@@ -7,15 +7,24 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 // Import the TokenController contract to extend its functionalities
 import "./TokenController.sol";
+import "@openzeppelin/contracts/utils/Context.sol";
 
 // TransferManager extends the TokenController contract
 contract TransferManager is TokenController {
+
+    address _owner;
+
+    // Mapping to manage allowed transfers between token pairs on different chains
+    mapping (uint256 => mapping(address => address)) public allowed_transfers;
+    mapping (uint256 => mapping(address => bool)) public defined_transfers;
 
     // Mapping of transfer IDs to their corresponding transfer records
     mapping(string => bool) public transfers;
 
     // Constructor for the contract
-    constructor() {}
+    constructor() {
+        _owner = msg.sender;
+    }
 
     // Function to retrieve a transfer record by its ID
     function getTransfer(string memory transferId) public view returns (bool) {
@@ -43,4 +52,20 @@ contract TransferManager is TokenController {
     function transferCompleted(string memory transferId) internal view returns (bool) {
         return transfers[transferId];
     }
+
+    // Allows the addition of new token pairs for cross-chain transfers
+    // `target_chain_id` represents the target blockchain
+    // `token_in` is the token address on the current chain
+    // `token_out` is the corresponding token address on the target chain
+    function addAllowedTransfer(uint256 target_chain_id, address token_in, address token_out) public  {
+        require(msg.sender == _owner, "Only the owner can add allowed transfers");
+        allowed_transfers[target_chain_id][token_in] = token_out;
+        defined_transfers[target_chain_id][token_in] = true;
+    }
+
+    // Checks if a specified token transfer is allowed based on previously added pairs
+    function isTransferAllowed(uint256 target_chain_id, address token_in, address token_out) public view returns (bool) {
+        return defined_transfers[target_chain_id][token_in] == true && allowed_transfers[target_chain_id][token_in] == token_out;
+    }
+
 }

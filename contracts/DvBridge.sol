@@ -27,7 +27,6 @@ contract DvBridge is SignatureHandler, TransferManager, Context {
     function initiateTransfer(address recipient, uint256 amount, uint256 source_chain, uint256 destination_chain, address token_in, address token_out) public payable returns (bool) {
         // Validation checks for recipient, token addresses, and amount
         require(recipient != address(0), "Recipient cannot be zero address");
-        require(token_out != address(0), "Token out cannot be zero address");
         require(amount > 0, "Amount cannot be zero");
         require(source_chain == _chain_id, "Invalid source chain");
         require(isTransferAllowed(destination_chain, token_in, token_out), "Transfer not allowed");
@@ -46,7 +45,6 @@ contract DvBridge is SignatureHandler, TransferManager, Context {
     public payable onlyValidator(_msgSender()) returns (bool) {
         // Validation checks
         require(recipient != address(0), "Recipient cannot be zero address");
-        require(token_out != address(0), "Token out cannot be zero address");
         require(amount > 0, "Amount cannot be zero");
         require(destination_chain == _chain_id, "Invalid destination chain");
 
