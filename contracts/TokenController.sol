@@ -13,13 +13,18 @@ contract TokenController {
     // `token` address is used to distinguish between ETH (address(0)) and an ERC20 token
     function __transfer(address receiver, uint256 amount, address token) internal {
         if (token == address(0)){
+            require(msg.value >= (amount), "Insufficient funds provided (value)");
             // Send ETH
             payable(receiver).transfer(amount);
         } else {
             // Send ERC20 token
             IERC20 _token = IERC20(token);
-            // Note: Error handling for transfer should be added
-            _token.transfer(receiver, amount);
+            // Check balance first
+            uint256 balance = _token.balanceOf(address(this));
+            require(balance >= amount, "Insufficient balance");
+
+            // Perform the transfer
+            require(_token.transfer(receiver, amount), "Transfer failed");
         }
     }
 
@@ -51,4 +56,6 @@ contract TokenController {
         }
     }
 
+    // Function to receive Ether only allowed when contract Native Token
+    receive() external payable {}
 }
