@@ -21,24 +21,26 @@ contract SignatureHandler {
     }
 
     // Generates a hash of transaction details, which can be signed by validators
-    function getMessage(address recipient, uint256 amount, uint256 source_chain, uint256 destionation_chain, address token_in, address token_out, string memory nonce) 
+    function getTransactionMessage(address recipient, uint256 amount, uint256 source_chain, uint256 destionation_chain, address token_in, address token_out, string memory nonce) 
     public pure returns (bytes32) {
         // Encodes transaction details and converts to a bytes32 hash
         return bytesToBytes32(abi.encodePacked(recipient, amount, source_chain, destionation_chain, token_in, token_out, nonce));
     }
 
-    // Verifies if the provided signatures for a message are valid and from validators
-    function verifySignatures(address recipient, uint256 amount, uint256 source_chain, uint256 destionation_chain, address token_in, address token_out, string memory nonce, 
-    bytes[] memory signatures) internal view returns (bool) {
-        uint256 count = 0; // Counter for valid signatures
+    // Generates a hash of transaction details, which can be signed by validators
+    function getVoteMessage(uint256 vote_type, address value) 
+    public pure returns (bytes32) {
+        // Encodes transaction details and converts to a bytes32 hash
+        return bytesToBytes32(abi.encodePacked(vote_type, value));
+    }
 
-        // Generate the message hash and its Ethereum signed message hash variant
-        bytes32 message = getMessage(recipient, amount, source_chain, destionation_chain, token_in, token_out, nonce);
-        bytes32 ethSignedMessageHash = message.toEthSignedMessageHash();
+    // Verifies if the provided signatures for a message are valid and from validators
+    function verifySignatures(bytes32 message, bytes[] memory signatures) internal view returns (bool) {
+        uint256 count = 0; // Counter for valid signatures
 
         // Loop through each signature, recovering the signer and checking if they're a validator
         for (uint256 i = 0; i < signatures.length; i++) {
-            address signer = ethSignedMessageHash.recover(signatures[i]);
+            address signer = message.recover(signatures[i]);
             if (isValidator(signer)) {
                 count++;
                 // If more than half of the validators have signed, return true
@@ -49,6 +51,24 @@ contract SignatureHandler {
         }
 
         return false; // Not enough valid signatures
+    }
+
+    function addValidator(address _address) internal {
+        validators.push(_address);
+    }
+
+    function removeValidator(address _address) internal {
+        for (uint256 i = 0; i < validators.length; i++) {
+            if (validators[i] == _address) {
+                validators[i] = validators[validators.length - 1];
+                validators.pop();
+                break;
+            }
+        }
+    }
+
+    function getValidators() public view returns (address[] memory) {
+        return validators;
     }
 
     // Checks if an address is in the list of validators

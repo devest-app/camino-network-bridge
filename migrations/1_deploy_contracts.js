@@ -1,7 +1,7 @@
 const Helper = require("../test/helpers/Helper");
 
 const DvBridge = artifacts.require("DvBridge");
-
+const ERC20PresetFixedSupply = artifacts.require("ERC20PresetFixedSupply");
 
 // zero address
 const zeroAddress = '0x0000000000000000000000000000000000000000';

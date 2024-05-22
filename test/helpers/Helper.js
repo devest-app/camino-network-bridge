@@ -1,7 +1,9 @@
-const ERC20 = artifacts.require("ERC20PresetFixedSupply");
+const {ethers} = require("hardhat");
 const web3 = require('web3');
 
 class Helper {
+
+    static zeroAddress = '0x0000000000000000000000000000000000000000';
 
     static privateKey1 = "222448da4964a3c5e80b5fbce76d458bbb2ec9a6fa8930298c7c02cb0ece7776";
     static publicAddress1 = "0xFe84dFC77D747512cBaE15B6af042886d4329d82";

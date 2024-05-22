@@ -11,11 +11,14 @@ contract TokenController {
     // `receiver` is the address to receive the tokens or ETH
     // `amount` specifies how much to transfer
     // `token` address is used to distinguish between ETH (address(0)) and an ERC20 token
-    function __transfer(address receiver, uint256 amount, address token) internal {
+    function __transfer(address receiver, uint256 amount, address token, bool _payable) internal {
         if (token == address(0)){
-            require(msg.value >= (amount), "Insufficient funds provided (value)");
-            // Send ETH
-            payable(receiver).transfer(amount);
+            if(_payable) {
+                require(msg.value >= (amount), "Insufficient funds provided (value)");
+                payable(receiver).transfer(amount);
+            } else {
+                payable(receiver).transfer(amount);
+            }
         } else {
             // Send ERC20 token
             IERC20 _token = IERC20(token);

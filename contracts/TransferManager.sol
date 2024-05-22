@@ -39,10 +39,7 @@ contract TransferManager is TokenController {
         // Ensure no duplicate transfer record exists
         require(!transferCompleted(transferId), "Transfer already completed");
 
-        // Verify that the transfer is allowed
-        require(isTransferAllowed(source_chain, token_in, token_out), "Transfer not allowed");
-
-        __transfer(recipient, amount, token_out);
+        __transfer(recipient, amount, token_out, false);
 
         // Create the transfer record
         transfers[transferId] = true;
@@ -51,21 +48,6 @@ contract TransferManager is TokenController {
     // Check if a transfer is completed
     function transferCompleted(string memory transferId) internal view returns (bool) {
         return transfers[transferId];
-    }
-
-    // Allows the addition of new token pairs for cross-chain transfers
-    // `target_chain_id` represents the target blockchain
-    // `token_in` is the token address on the current chain
-    // `token_out` is the corresponding token address on the target chain
-    function addAllowedTransfer(uint256 target_chain_id, address token_in, address token_out) public  {
-        require(msg.sender == _owner, "Only the owner can add allowed transfers");
-        allowed_transfers[target_chain_id][token_in] = token_out;
-        defined_transfers[target_chain_id][token_in] = true;
-    }
-
-    // Checks if a specified token transfer is allowed based on previously added pairs
-    function isTransferAllowed(uint256 target_chain_id, address token_in, address token_out) public view returns (bool) {
-        return defined_transfers[target_chain_id][token_in] == true && allowed_transfers[target_chain_id][token_in] == token_out;
     }
 
 }
