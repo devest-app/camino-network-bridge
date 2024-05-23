@@ -5,7 +5,8 @@ pragma solidity ^0.8.12;
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 // A contract to handle signature verification with a set of validators
-contract SignatureHandler {
+contract ValidatorSignatureManager {
+
     // Enable ECDSA operations on bytes32 types
     using ECDSA for bytes32;
 
@@ -20,18 +21,25 @@ contract SignatureHandler {
         validators = _validators;
     }
 
-    // Generates a hash of transaction details, which can be signed by validators
+    // Generates a message of transaction details, which can be signed by validators
     function getTransactionMessage(address recipient, uint256 amount, uint256 source_chain, uint256 destionation_chain, address token_in, address token_out, string memory nonce) 
     public pure returns (bytes32) {
         // Encodes transaction details and converts to a bytes32 hash
         return bytesToBytes32(abi.encodePacked(recipient, amount, source_chain, destionation_chain, token_in, token_out, nonce));
     }
 
-    // Generates a hash of transaction details, which can be signed by validators
-    function getVoteMessage(uint256 vote_type, address value) 
+    // Generates a message of transaction details, which can be signed by validators
+    function getVoteValidatorMessage(uint256 vote_type, address value) 
     public pure returns (bytes32) {
         // Encodes transaction details and converts to a bytes32 hash
         return bytesToBytes32(abi.encodePacked(vote_type, value));
+    }
+
+    // Generates a message of transaction details, which can be signed by validators
+    function getVoteRewardMessage(uint256 amount) 
+    public pure returns (bytes32) {
+        // Encodes transaction details and converts to a bytes32 hash
+        return bytesToBytes32(abi.encodePacked(amount));
     }
 
     // Verifies if the provided signatures for a message are valid and from validators
@@ -51,6 +59,18 @@ contract SignatureHandler {
         }
 
         return false; // Not enough valid signatures
+    }
+
+    // Distributes the validator fee among the validators
+    function rewardValidators(uint256 validator_fee) internal {
+        uint256 amount = validator_fee / validators.length;
+        uint256 remainder = validator_fee % validators.length;
+
+        for (uint256 i = 0; i < validators.length; i++) {
+            payable(validators[i]).transfer(amount);
+        }
+
+        payable(msg.sender).transfer(remainder);
     }
 
     function addValidator(address _address) internal {

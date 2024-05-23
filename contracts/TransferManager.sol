@@ -12,19 +12,20 @@ import "@openzeppelin/contracts/utils/Context.sol";
 // TransferManager extends the TokenController contract
 contract TransferManager is TokenController {
 
-    address _owner;
+    struct DestinationToken {
+        address token_out;
+        uint256 timestamp;
+        uint256 amount;
+        uint256 max_amount;
+    }
 
-    // Mapping to manage allowed transfers between token pairs on different chains
-    mapping (uint256 => mapping(address => address)) public allowed_transfers;
-    mapping (uint256 => mapping(address => bool)) public defined_transfers;
+    // Mapping to manage allowed transfers between token pairs on different chains (destination_chain_id => (token_in => token_out)
+    mapping (uint256 => mapping(address => DestinationToken)) public allowed_transfers;
 
-    // Mapping of transfer IDs to their corresponding transfer records
+    // Transfer records
     mapping(string => bool) public transfers;
 
-    // Constructor for the contract
-    constructor() {
-        _owner = msg.sender;
-    }
+    constructor() {}
 
     // Function to retrieve a transfer record by its ID
     function getTransfer(string memory transferId) public view returns (bool) {
@@ -50,4 +51,8 @@ contract TransferManager is TokenController {
         return transfers[transferId];
     }
 
+    function isTransferAllowed(uint256 destination_chain, address token_in, uint256 amount) public view returns (bool) {
+        DestinationToken memory destination_token = allowed_transfers[destination_chain][token_in];
+        return destination_token.amount + amount <= destination_token.max_amount;
+    }
 }

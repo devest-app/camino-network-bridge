@@ -24,9 +24,9 @@ describe('Testing Transfers', () => {
     accounts.push(account3);
 
 
-    bridge_contract_camino = await DvBridge.deploy(123, [Helper.publicAddress1, Helper.publicAddress2, Helper.publicAddress3, account3.address]);
+    bridge_contract_camino = await DvBridge.deploy(123, "80", [Helper.publicAddress1, Helper.publicAddress2, Helper.publicAddress3, account3.address]);
     await bridge_contract_camino.deployed();
-    bridge_contract_polygon = await DvBridge.deploy(321, [Helper.publicAddress1, Helper.publicAddress2, Helper.publicAddress3, account3.address]);
+    bridge_contract_polygon = await DvBridge.deploy(321, "80", [Helper.publicAddress1, Helper.publicAddress2, Helper.publicAddress3, account3.address]);
     await bridge_contract_polygon.deployed();
 
 
@@ -69,15 +69,30 @@ describe('Testing Transfers', () => {
 
     const balance_before = await provider.getBalance(bridge_contract_camino.address);
 
+    const validator_fee = await bridge_contract_camino.validator_fee();
+
     const amount = 100;
 
     const transaction = await bridge_contract_camino.connect(accounts[2]).initiateTransfer(Helper.publicAddress1, amount, "123", "321", Helper.zeroAddress, Helper.zeroAddress,
-    { value: amount });
+    { value: amount  + validator_fee.toNumber() });
     assert(transaction.blockHash != null)
 
     const balance_after = await provider.getBalance(bridge_contract_camino.address);
     // check that the contract has the correct balance
     assert.equal(balance_after.toNumber(), balance_before.toNumber() + amount, "Invalid balance");
+  });
+
+  it("Validator Rewards - All validators should have been rewarded", async function () {
+
+    const balance_1 = await provider.getBalance(Helper.publicAddress1);
+    const balance_2 = await provider.getBalance(Helper.publicAddress2);
+    const balance_3 = await provider.getBalance(Helper.publicAddress3);
+    const balance_4 = await provider.getBalance(accounts[2].address);
+
+    assert.equal(balance_1.toNumber(), 20, "Invalid balance");
+    assert.equal(balance_2.toNumber(), 20, "Invalid balance");
+    assert.equal(balance_3.toNumber(), 20, "Invalid balance");
+    assert.notEqual(balance_4.toBigInt(), 0, "Invalid balance");
   });
 
   it("CompleteTransfer - Should fail if sender is not a validator", async function () {
