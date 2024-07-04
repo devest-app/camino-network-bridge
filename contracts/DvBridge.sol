@@ -165,6 +165,7 @@ contract DvBridge is ValidatorSignatureManager, TransferManager {
         return true;
     }
 
+    // Function to recover funds in case of failed transfers on the destination chain (refunds tokens on the source chain)
     function recoverFunds(address recipient, uint256 amount, uint256 source_chain, uint256 destination_chain, address token_in, string memory nonce, bytes[] memory signatures) onlyValidator(msg.sender) public returns (bool)  {
         require(recipient != address(0), "Recipient cannot be zero address");
         require(amount > 0, "Amount cannot be zero");
@@ -182,6 +183,7 @@ contract DvBridge is ValidatorSignatureManager, TransferManager {
         return true;
     }
 
+    // Function to block a transfer in case of issues on the destination chain or other reasons (eg. blocks the transfer on the destination chain to prevent double spending before refunding on the source chain)
     function blockTransfer(uint256 source_chain, uint256 destination_chain, string memory nonce, bytes[] memory signatures) onlyValidator(msg.sender) public returns (bool)  {
         require(destination_chain == chain_id, "Invalid destination chain");
         require(source_chain != chain_id, "Invalid source chain");
