@@ -18,6 +18,9 @@ contract TransferManager is TokenController {
         uint256 max_amount;
     }
 
+    // Allowed transfer votes
+    mapping (string => bool) public allowedTransferVotes;
+
     // Mapping to manage allowed transfers between token pairs on different chains
     mapping (uint256 => mapping(address => DestinationToken)) public allowed_transfers;
 
@@ -27,29 +30,32 @@ contract TransferManager is TokenController {
     constructor() {}
 
     // Internal function to set allowed transfer details for a destination chain and token pair
-    function __setAllowedTransfer(uint256 destination_chain, address token_in, address token_out, bool active, uint256 max_amount) internal {
+    function __setAllowedTransfer(uint256 destination_chain, address token_in, address token_out, bool active, uint256 max_amount, string memory nonce) internal {
+        require(!allowedTransferVotes[nonce], "Transfer vote already cast");
+        allowedTransferVotes[nonce] = true;
+
         allowed_transfers[destination_chain][token_in] = DestinationToken(token_out, active, max_amount);
     }
 
     // Function to check if a transfer record exists by its ID
-    function getTransfer(string memory transferId) public view returns (bool) {
+    function getTransfer(string memory transferId) external view returns (bool) {
         return transfers[transferId];
     }
 
     // Function to retrieve allowed transfer details for a specific destination chain and token pair
-    function getAllowedTransfer(uint256 destination_chain, address token_in) public view returns (DestinationToken memory) {
+    function getAllowedTransfer(uint256 destination_chain, address token_in) external view returns (DestinationToken memory) {
         return allowed_transfers[destination_chain][token_in];
     }
 
     // Internal function to complete a transfer and create a record for it
-    function _completeTransfer(address recipient, uint256 amount, uint256 source_chain, address token_in, address token_out, string memory nonce) internal {
+    function _completeTransfer(address recipient, uint256 amount, uint256 source_chain, address token_out, string memory nonce) internal {
         string memory transferId = string(abi.encodePacked(Strings.toString(source_chain), nonce));
 
         require(!transferCompleted(transferId), "Transfer already completed");
-
-        __transfer(recipient, amount, token_out, false);
-
         transfers[transferId] = true;
+
+        __transfer(recipient, amount, token_out);
+
     }
 
     // Internal function to check if a transfer has been completed
