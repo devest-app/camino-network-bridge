@@ -1,13 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.12;
 
-// Import utility functions for string manipulation
-import "@openzeppelin/contracts/utils/Strings.sol";
-// Import the ERC20 token standard interface
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 // Import the TokenController contract to extend its functionalities
 import "./TokenController.sol";
-import "@openzeppelin/contracts/utils/Context.sol";
 
 // TransferManager extends the TokenController contract
 contract TransferManager is TokenController {
@@ -49,18 +44,28 @@ contract TransferManager is TokenController {
 
     // Internal function to complete a transfer and create a record for it
     function _completeTransfer(address recipient, uint256 amount, uint256 source_chain, address token_out, string memory nonce) internal {
-        string memory transferId = string(abi.encodePacked(Strings.toString(source_chain), nonce));
+        string memory transferId = string(abi.encodePacked(source_chain, nonce));
 
-        require(!transferCompleted(transferId), "Transfer already completed");
+        require(!transfers[transferId], "Transfer already completed");
         transfers[transferId] = true;
 
         __transfer(recipient, amount, token_out);
-
     }
 
-    // Internal function to check if a transfer has been completed
-    function transferCompleted(string memory transferId) internal view returns (bool) {
-        return transfers[transferId];
+    function _recoverFunds(address recipient, uint256 amount, uint256 source_chain, address token_in, string memory nonce) internal {
+         string memory transferId = string(abi.encodePacked(source_chain, nonce, recipient));
+
+        require(!transfers[transferId], "Transfer already completed");
+        transfers[transferId] = true;
+
+        __transfer(recipient, amount, token_in);
+    }
+
+    function _blockTransfer(uint256 source_chain, string memory nonce) internal {
+        string memory transferId = string(abi.encodePacked(source_chain, nonce));
+
+        require(!transfers[transferId], "Transfer already blocked");
+        transfers[transferId] = true;
     }
 
     // Internal function to verify if a transfer is allowed based on set parameters

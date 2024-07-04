@@ -18,9 +18,21 @@ contract ValidatorSignatureManager {
     }
 
     // Generates a message of transaction details
-    function getTransactionMessage(address recipient, uint256 amount, uint256 source_chain, uint256 destionation_chain, address token_in, address token_out, string memory nonce) 
+    function getTransactionMessage(address recipient, uint256 amount, uint256 source_chain, uint256 destination_chain, address token_in, address token_out, string memory nonce) 
     public pure returns (bytes32) {
-        return keccak256(abi.encodePacked(recipient, amount, source_chain, destionation_chain, token_in, token_out, nonce));
+        return keccak256(abi.encodePacked(recipient, amount, source_chain, destination_chain, token_in, token_out, nonce, "1"));
+    }
+
+    // Generates a message of transaction details
+    function getRecoverFundsMessage(address recipient, uint256 amount, uint256 source_chain, uint256 destination_chain, address token_in, string memory nonce) 
+    public pure returns (bytes32) {
+        return keccak256(abi.encodePacked(recipient, amount, source_chain, destination_chain, token_in, nonce, "2"));
+    }
+
+    // Generates a message for blocking transfers
+    function getBlockTransferMessage(uint256 source_chain, uint256 destination_chain, string memory nonce) 
+    public pure returns (bytes32) {
+        return keccak256(abi.encodePacked(source_chain, destination_chain, nonce, "3"));
     }
 
     // Generates a message for validator vote

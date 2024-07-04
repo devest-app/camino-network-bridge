@@ -33,7 +33,6 @@ contract TokenController {
                 require(balance >= amount, "Insufficient balance");
                 
                 _token.safeTransferFrom(msg.sender, receiver, amount);
-
             } else {
                 uint256 balance = _token.balanceOf(address(this));
                 require(balance >= amount, "Insufficient balance");

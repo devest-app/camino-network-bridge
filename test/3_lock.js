@@ -48,6 +48,22 @@ describe('Bridge Lock', () => {
         assert.notEqual(transaction, undefined || null, "Invalid error message");
     });
 
+    it("Locking [FAIL] - can't initiate transfer", async function () {
+        const recipient = bridge_user.address;
+        const amount = 100;
+        const token_in = token_contract.address;
+        const token_out = zero_address;
+
+        try {
+            const source_chain = "123"; // contract chain id
+            const destination_chain = "321"; 
+
+            await bridge_contract.connect(bridge_user).initiateTransfer(recipient, amount, source_chain, destination_chain, token_in, token_out);
+        } catch (error) {
+            assert.strictEqual(error.message, "VM Exception while processing transaction: reverted with reason string 'Bridge is locked'", "Invalid error message");
+        }
+    });
+
     it("Locking [FAIL] - cannot lock the bridge twice with same signatures", async function () {
         const nonce = "123456789";
 
