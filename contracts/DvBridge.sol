@@ -9,7 +9,7 @@ import "./TransferManager.sol";
 // DvBridge contract handles cross-chain transfers and validator management
 contract DvBridge is ValidatorSignatureManager, TransferManager {
 
-    uint256 public lock_time; // Time until the bridge is locked for transfers to non-validators
+    bool public locked; // Time until the bridge is locked for transfers to non-validators
     uint256 chain_id; // ID of the current chain
     uint256 public validator_fee; // Fee that validators receive for completing transfers (each of the validators gets the same amount)
 
@@ -23,7 +23,7 @@ contract DvBridge is ValidatorSignatureManager, TransferManager {
     event TransferCompleted(address recipient, uint256 amount, uint256 source_chain, uint256 destination_chain, address token_in, address token_out, string nonce, bytes[] signatures, address msg_sender);
     event TransferBlocked(uint256 source_chain, uint256 destination_chain, string nonce, bytes[] signatures);
     event FundsRecovered(address recipient, uint256 amount, uint256 source_chain, uint256 destination_chain, address token_in, string nonce, bytes[] signatures);
-    event BridgeLocked(uint256 lock_time);
+    event BridgeLocked(bool locked);
 
     // Constructor to initialize the contract with chain ID, validator fee, and validators
     constructor(uint256 _chain_id, uint256 _validator_fee, address[] memory validators) ValidatorSignatureManager(validators) {
@@ -39,7 +39,7 @@ contract DvBridge is ValidatorSignatureManager, TransferManager {
         require(source_chain == chain_id, "Invalid source chain");
         require(destination_chain != chain_id, "Invalid destination chain");
         require(isTransferAllowed(destination_chain, token_in, token_out, amount), "Transfer not allowed or amount exceeds maximum allowed");
-        require(lock_time < block.timestamp, "Bridge is locked");
+        require(!locked, "Bridge is locked");
 
         // Check that the user has sent enough funds for the transfer and validator fees
         uint256 total_amount;
@@ -93,7 +93,7 @@ contract DvBridge is ValidatorSignatureManager, TransferManager {
         require(destination_chain == chain_id, "Invalid destination chain");
         require(source_chain != chain_id, "Invalid source chain");
 
-        if(lock_time > block.timestamp) {
+        if(locked) {
             require(isValidator(recipient), "Recipient is not a validator");
         } else {
             require(isTransferAllowed(destination_chain, token_in, token_out, amount), "Transfer not allowed or amount exceeds maximum allowed");
@@ -111,8 +111,8 @@ contract DvBridge is ValidatorSignatureManager, TransferManager {
         return true;
     }
 
-    // Locks the bridge for transfers to non-validators for a specified time
-    function lock(string memory nonce, bytes[] memory signatures) public onlyValidator(msg.sender) {
+    // Lock or unlock the bridge for transfers
+    function setLockedState(string memory nonce, bool _locked, bytes[] memory signatures) public onlyValidator(msg.sender) {
         require(!lockVotes[nonce], "Vote already cast");
 
         // Verify signatures
@@ -121,9 +121,9 @@ contract DvBridge is ValidatorSignatureManager, TransferManager {
         require(valid, "Invalid signatures");
 
         lockVotes[nonce] = true;
+        locked = _locked;
 
-        lock_time = block.timestamp + 1 days;
-        emit BridgeLocked(lock_time);
+        emit BridgeLocked(locked);
     }
 
     // Handles validator voting for adding or removing validators
