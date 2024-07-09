@@ -65,17 +65,21 @@ The pairs can be set up by any validator address. This useful feature for strict
 
 - **Events:**
   - `TransferInitiated(address sender, address recipient, uint256 amount, uint256 source_chain, uint256 destination_chain, address token_in, address token_out)`: Fired when tokens are locked by the user
+  - `FundsRecovered(address recipient, uint256 amount, uint256 source_chain, uint256 destination_chain, address token_in, string nonce, bytes[] signatures)`: Fired when tokens are returned to the recipient
 
 - **Functions:**
   - `initiateTransfer(address recipient, uint256 amount, uint256 source_chain, uint256 destination_chain, address token_in, address token_out)`: Locks the specified amount of tokens and fires the `TokensLocked` event.
+   - `recoverFunds(address recipient, uint256 amount, uint256 source_chain, uint256 destination_chain, address token_in, string memory nonce, bytes[] memory signatures)`: Returns tokens to the recipient on the source chain in case of transfer failure on the destination chain
 
 #### Destination Chain Smart Contract
 
 - **Events:**
 - `TransferCompleted(address recipient, uint256 amount, uint256 source_chain, uint256 destination_chain, address token_in, address token_out, string nonce, bytes[] signatures, address msg_sender)`: Fired when tokens are transfered to the user on the destination chain.
+- `TransferBlocked(uint256 source_chain, uint256 destination_chain, string nonce, bytes[] signatures)`: Fired when transfer is blocked on the destination chain.
 
 - **Functions:**
   - `completeTransfer(address recipient, uint256 amount, uint256 source_chain, uint256 destination_chain, address token_in, address token_out, string memory nonce, bytes[] memory signatures)`: Verifies the signatures and transfers tokens to the user if the signatures are valid.
+  - `blockTransfer(uint256 source_chain, uint256 destination_chain, string memory nonce, bytes[] memory signatures)`: Blocks the transfer so that tokens can be safly returned on the source chain.
 
 
 ## Smart Contracts Overview
@@ -83,83 +87,77 @@ The pairs can be set up by any validator address. This useful feature for strict
 ### DvBridge
 The primary contract that manages cross-chain transfers, validator operations, and integrates functionalities from TokenController, TransferManager, and ValidatorSignatureManager.
 
-* lock_time: The timestamp until which the contract is locked for transfers to addresses other than validators.
-* chain_id: The ID of the chain where the contract is deployed.
-* validator_fee: The fee to be paid to validators for each transaction.
-Key Functions 
-* constructor: Initializes the contract with chain ID, validator fee, and validators.
-* initiateTransfer: Initiates a transfer by locking tokens in the contract.
-* completeTransfer: Completes a transfer by sending tokens to the recipient.
-* lock: Locks the bridge for transfers to non-validators for a specified time.
-* voteValidator: Handles validator voting for adding or removing validators.
-* setAllowedTransfer: Sets allowed transfer parameters for a specific destination chain and token.
-* setValidatorReward: Sets the validator reward fee.
+
+#### Key Variables
+- **locked**: A boolean indicating whether the bridge is currently locked for transfers to addresses other than validators.
+- **chain_id**: The ID of the chain where the contract is deployed.
+- **validator_fee**: The fee to be paid to validators for each transaction.
+
+#### Key Functions
+- **constructor**: Initializes the contract with chain ID, validator fee, and validators.
+- **initiateTransfer**: Initiates a transfer by locking tokens in the contract.
+- **completeTransfer**: Completes a transfer by sending tokens to the recipient.
+- **setLockedState**: Locks or unlocks the bridge for transfers to non-validators.
+- **voteValidator**: Handles validator voting for adding or removing validators.
+- **setAllowedTransfer**: Sets allowed transfer parameters for a specific destination chain and token.
+- **setValidatorReward**: Sets the validator reward fee.
+- **recoverFunds**: Recovers funds to a recipient address in case of a failed transfer.
+- **blockTransfer**: Blocks a transfer in case the funds need to be returned on the recipient on the source chain.
+
+#### Additional Details
+- **Events**:
+  - `TransferInitiated`: Emitted when a transfer is initiated.
+  - `TransferCompleted`: Emitted when a transfer is completed and tokens are transfered to recipient on destination chain.
+  - `TransferBlocked`: Emitted when a transfer is blocked.
+  - `FundsRecovered`: Emitted when funds are recovered, providing details like recipient, amount, source chain, destination chain, token, nonce, and signatures.
+  - `BridgeLocked`: Emitted when the bridge lock status is changed.
+
+- **Mappings**:
+  - `validatorFeeVotes`: Tracks votes related to validator fees.
+  - `lockVotes`: Tracks votes related to locking the bridge.
+
 
 ### ValidatorSignatureManager
-Handles signature verification with a set of validators.
+The `ValidatorSignatureManager` contract handles signature verification with a set of validators, ensuring that cross-chain transfers and other operations are securely validated by multiple trusted parties.
 
-* getTransactionMessage: Generates a message of transaction details for signature.
-* getVoteValidatorMessage: Generates a message for validator vote for signature.
-* getVoteRewardMessage: Generates a message for reward vote for signature.
-* verifySignatures: Verifies if the provided signatures are valid and from validators.
-* rewardValidators: Distributes the validator fee among validators.
-* addValidator: Adds a new validator.
-* removeValidator: Removes an existing validator.
-* getValidators: Returns the list of validators.
-* isValidator: Checks if an address is a validator.
+#### Key Variables
+- **validators**: An array of addresses representing the validators.
+- **validatorVotes**: A mapping to track votes from validators.
+
+#### Key Functions
+- **constructor**: Initializes the contract with a list of validators.
+- **getTransactionMessage**: Generates a message hash of transaction details, used for validation.
+- **getRecoverFundsMessage**: Generates a message hash for fund recovery, used for validation.
+- **getBlockTransferMessage**: Generates a message hash for blocking transfers.
+- **getVoteValidatorMessage**: Generates a message hash for validator voting.
+- **getVoteRewardMessage**: Generates a message hash for voting on rewards.
+- **getAllowedTransferMessage**: Generates a message hash for setting allowed transfers.
+- **getLockMessage**: Generates a message hash for locking operations.
+- **verifySignature**: Verifies that a given signature matches the expected signer for a provided message hash.
+- **verifySignatures**: Verifies if the provided signatures are valid and from validators.
+- **isValidator**: Checks if a given address is a valid validator.
+
 
 ### TransferManager
-Extends TokenController to manage allowed transfers between token pairs on different chains.
+The `TransferManager` contract extends the `TokenController` contract and manages allowed transfers between token pairs on different chains.
 
-* __setAllowedTransfer: Sets allowed transfer details for a destination chain and token pair.
-* getTransfer: Checks if a transfer record exists.
-* getAllowedTransfer: Retrieves allowed transfer details.
-* _completeTransfer: Completes a transfer and records it.
-* transferCompleted: Checks if a transfer has been completed.
-* isTransferAllowed: Verifies if a transfer is allowed based on set parameters.
+#### Key Variables
+- **allowedTransferVotes**: A mapping to track votes related to allowed transfers.
+- **allowed_transfers**: A nested mapping to manage allowed transfers between token pairs on different chains.
+- **transfers**: A mapping to track transfer records.
 
-### TokenController
-A contract managing token transfers and balances for both native cryptocurrency and ERC20 tokens.
+#### Key Functions
+- **constructor**: Initializes the contract.
+- **__setAllowedTransfer**: Sets allowed transfer details for a destination chain and token pair.
+- **isTransferAllowed**: Checks if a transfer is allowed for a given destination chain and token pair.
+- **recordTransfer**: Records a transfer to prevent duplicates.
 
-* __transfer: Transfers tokens or native cryptocurrency.
-* __balanceOf: Retrieves the balance of a specified account for a given token.
-* __allowance: Checks if the allowance for a token is sufficient for a transfer.
-
-
+#### Additional Details
+- **Structs**:
+  - **DestinationToken**: Contains details about a token pair's transfer status, including the output token address, active status, and maximum allowed amount.
 
 
 ## Private Network
-
-### Signaling Service
-
-The signaling service is a WebSocket-based system responsible for managing the initial connection and validation of nodes attempting to join a private peer network. It ensures secure communication through data encryption and verifies the legitimacy of nodes using a signature validation mechanism.
-
-#### Key Features
-- **WebSocket Implementation:** Utilizes WebSocket Secure (wss) for data encryption and secure communication.
-- **Node Connection Validation:** Checks if a node can connect to the network by validating its signature.
-- **Signature Validation:** 
-  - When a node requests to connect, its signature is validated against a list of validators stored on the smart contract.
-  - If the signature for the public address matches the signature from the list, the signaling server communicates to other validator nodes about the new node's connection request.
-  - The node connection data is passed through the signaling server to all nodes to establish a private peer network.
-  - If the signature is invalid, the node is denied connection and is automaticaly terminated by the the signaling service.
-
-#### Workflow
-1. **Node Connection Request:**
-   - A node requests to connect to the network.
-   - The signaling server receives the request and the node's signature.
-2. **Signature Validation:**
-   - The server checks the node's signature against the list of validators on the smart contract.
-3. **Connection Approval:**
-   - If the signature is valid, the signaling server notifies other validator nodes about the new connection.
-   - The node connection data is disseminated to all nodes, establishing a private peer network.
-4. **Connection Denial:**
-   - If the signature is invalid, the node is denied access and cannot communicate further with the signaling service.
-
-#### Security Considerations
-- **Data Encryption:** Ensures all communication is encrypted using WebSocket Secure (wss).
-- **Signature Validation:** Validates node signatures against the list of validators stored on the smart contract.
-
-
 
 ### Validator Nodes
 
@@ -168,27 +166,28 @@ Validator nodes play a critical role in bridging networks, validating transactio
 #### Key Features
 - **Network Bridging:** Responsible for bridging to other networks and rewarded for validation efforts.
 - **Preconfiguration:** Nodes need to be preconfigured before joining the network.
-- **Signaling Service Connection:** On startup, nodes contact the signaling service to connect to the private network.
-- **Peer Communication:** Use the `simple-peer` library (JavaScript version) to establish connections with other nodes.
+- **Peer Communication:** Use `express` to establish communication with other nodes.
 - **Event Listening:** 
   - Nodes listen to chain events every 10 seconds.
-  - They check for `TransferInitiated` and `TransferCompleted` events.
+  - They check for `TransferInitiated`, `TransferCompleted`, `TransferBlocked` events.
 - **Transaction Management:** 
   - On finding a new transfer initiated event, the main node collects signatures from all other validators and submits the transaction once all signatures are collected.
+- **Executor node election**
+  - When transfer is completed on the destination chain, next node responsible for collecting the signatures and compliting transaction is selected at random.
 - **Unauthorized Transfer Detection:** 
   - Nodes can detect unauthorized transfers and lock the bridge contracts if necessary.
   - Locking the bridge allows for additional time to investigate the issue.
   - Once the bridge is locked, funds in the contract can only be transferred only to a validator address.
 - **Notifications and Voting:**
   - Utilizes Telegraph to notify if contracts are locked.
-  - Facilitates voting for adding/removing validators and setting validator rewards.
+  - Facilitates voting for adding/removing allowed tokens, adding/removing validators and setting validator rewards.
 - **Security:** Each node has its own private key, which must be protected.
 
 #### Workflow
 1. **Startup:**
-   - Node contacts the signaling service to connect to the private network.
+   - Nodes need to be provided with the private key of the public address set in the smart contracts.
 2. **Peer Network Connection:**
-   - Establishes connections with other nodes using the `simple-peer` library.
+   - Nodes communicate with each other with `express` library.
 3. **Event Listening:**
    - Listens to chain events every 10 seconds.
 4. **Transaction Initiation:**
@@ -197,7 +196,7 @@ Validator nodes play a critical role in bridging networks, validating transactio
 5. **Unauthorized Transfer Handling:**
    - If an unauthorized transfer is detected, nodes can lock the bridge contracts.
 6. **Notifications and Voting:**
-   - Uses Telegraph for notifications and supports voting for network governance.
+   - Uses Telegraph/GUI for notifications and supports voting for network governance.
 
 #### Security Considerations
 - **Private Key Protection:** Emphasizes the importance of protecting each node's private key to maintain network security.
