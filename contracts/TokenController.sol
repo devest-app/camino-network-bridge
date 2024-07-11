@@ -22,9 +22,7 @@ contract TokenController {
             }
 
             (bool success, ) = receiver.call{value: amount}(""); 
-            if (!success) {
-                revert("Transfer failed");
-            }
+            require(success, "Transfer failed");
         } else {
             IERC20 _token = IERC20(token);
             if(receiver == address(this)) {
