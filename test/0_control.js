@@ -337,6 +337,7 @@ describe('Votings And Setup', () => {
     it("Token Management - Should not set allowed transfer if not sent by a validator", async function () {
         try {
             const destination_chain = 321;
+            const source_chain = 123;
             const token_in = "0x0000000000000000000000000000000000000000";
             const token_out = token_contract.address;
             const active = true;
@@ -344,7 +345,7 @@ describe('Votings And Setup', () => {
             const nonce = "1";
 
             // get message for signing
-            const message = await bridge_contract.getAllowedTransferMessage(destination_chain, token_in, token_out, active, max_amount, nonce);
+            const message = await bridge_contract.getAllowedTransferMessage(source_chain, destination_chain, token_in, token_out, active, max_amount, nonce);
             const messageHashBuffer = Buffer(message.replace("0x", ""), "hex")
 
             // sign the message - with all validators
@@ -353,7 +354,7 @@ describe('Votings And Setup', () => {
             const signature3 = await validators[2].signMessage(messageHashBuffer);
 
 
-            await bridge_contract.connect(bridge_user).setAllowedTransfer(destination_chain, token_in, token_out, active, max_amount, nonce, [signature1, signature2, signature3]);
+            await bridge_contract.connect(bridge_user).setAllowedTransfer(source_chain, destination_chain, token_in, token_out, active, max_amount, nonce, [signature1, signature2, signature3]);
         } catch (error) {
             assert.strictEqual(error.message, "VM Exception while processing transaction: reverted with reason string 'Not a validator'", "Invalid error message");
         }
@@ -362,6 +363,7 @@ describe('Votings And Setup', () => {
     it("Token Management - Should allow token transfer", async function () {
         try {
             let destination_chain = 123;
+            let source_chain = 321;
             let token_in = "0x0000000000000000000000000000000000000000";
             let token_out = token_contract.address;
             const active = true;
@@ -369,7 +371,7 @@ describe('Votings And Setup', () => {
             let nonce = "1";
 
             // get message for signing
-            const message = await bridge_contract.getAllowedTransferMessage(destination_chain, token_in, token_out, active, max_amount, nonce);
+            const message = await bridge_contract.getAllowedTransferMessage(source_chain, destination_chain, token_in, token_out, active, max_amount, nonce);
             const messageHashBuffer = Buffer(message.replace("0x", ""), "hex")
 
             // sign the message - with all validators
@@ -377,20 +379,21 @@ describe('Votings And Setup', () => {
             const signature2 = await validators[1].signMessage(messageHashBuffer);
             const signature3 = await validators[2].signMessage(messageHashBuffer);
 
-            const _msg = await bridge_contract.connect(validators[0]).setAllowedTransfer(destination_chain, token_in, token_out, active, max_amount, nonce, [signature1, signature2, signature3]);
+            const _msg = await bridge_contract.connect(validators[0]).setAllowedTransfer(source_chain, destination_chain, token_in, token_out, active, max_amount, nonce, [signature1, signature2, signature3]);
 
-            const allowed_transfer = await bridge_contract.getAllowedTransfer(destination_chain, token_in);
+            const allowed_transfer = await bridge_contract.getAllowedTransfer(source_chain, destination_chain, token_in);
             assert.equal(allowed_transfer.active, active, "Invalid active status");
             assert.equal(allowed_transfer.max_amount, max_amount, "Invalid max amount");
             assert.equal(allowed_transfer.token_out, token_out, "Invalid token out");
 
             // setup reverse transfer
             destination_chain = 321;
+            source_chain = 123;
             token_in = token_contract.address;
             token_out = "0x0000000000000000000000000000000000000000";
             nonce = "2";
 
-            const messageReverse = await bridge_contract.getAllowedTransferMessage(destination_chain, token_in, token_out, active, max_amount, nonce);
+            const messageReverse = await bridge_contract.getAllowedTransferMessage(source_chain, destination_chain, token_in, token_out, active, max_amount, nonce);
             const messageHashBufferReverse = Buffer(messageReverse.replace("0x", ""), "hex")
 
             // sign the message - with all validators
@@ -398,9 +401,9 @@ describe('Votings And Setup', () => {
             const signature2Reverse = await validators[1].signMessage(messageHashBufferReverse);
             const signature3Reverse = await validators[2].signMessage(messageHashBufferReverse);
 
-            const _msgReverse = await bridge_contract.connect(validators[0]).setAllowedTransfer(destination_chain, token_in, token_out, active, max_amount, nonce, [signature1Reverse, signature2Reverse, signature3Reverse]);
+            const _msgReverse = await bridge_contract.connect(validators[0]).setAllowedTransfer(source_chain, destination_chain, token_in, token_out, active, max_amount, nonce, [signature1Reverse, signature2Reverse, signature3Reverse]);
 
-            const allowed_transferReverse = await bridge_contract.getAllowedTransfer(destination_chain, token_in);
+            const allowed_transferReverse = await bridge_contract.getAllowedTransfer(source_chain, destination_chain, token_in);
             assert.equal(allowed_transferReverse.active, active, "Invalid active status");
             assert.equal(allowed_transferReverse.max_amount, max_amount, "Invalid max amount");
             assert.equal(allowed_transferReverse.token_out, token_out, "Invalid token out");
@@ -417,6 +420,7 @@ describe('Votings And Setup', () => {
     it("Token Management - Should not allow token transfer with same nonce", async function () {
         try {
             const destination_chain = 321;
+            const source_chain = 321;
             const token_in = "0x0000000000000000000000000000000000000000";
             const token_out = token_contract.address;
             const active = true;
@@ -424,7 +428,7 @@ describe('Votings And Setup', () => {
             const nonce = "1";
 
             // get message for signing
-            const message = await bridge_contract.getAllowedTransferMessage(destination_chain, token_in, token_out, active, max_amount, nonce);
+            const message = await bridge_contract.getAllowedTransferMessage(source_chain, destination_chain, token_in, token_out, active, max_amount, nonce);
             const messageHashBuffer = Buffer(message.replace("0x", ""), "hex")
 
             // sign the message - with all validators
@@ -432,7 +436,7 @@ describe('Votings And Setup', () => {
             const signature2 = await validators[1].signMessage(messageHashBuffer);
             const signature3 = await validators[2].signMessage(messageHashBuffer);
 
-            const _msg = await bridge_contract.connect(validators[0]).setAllowedTransfer(destination_chain, token_in, token_out, active, max_amount, nonce, [signature1, signature2, signature3]);
+            const _msg = await bridge_contract.connect(validators[0]).setAllowedTransfer(source_chain, destination_chain, token_in, token_out, active, max_amount, nonce, [signature1, signature2, signature3]);
 
         } catch (error) {
             assert.strictEqual(error.message, "VM Exception while processing transaction: reverted with reason string 'Transfer vote already cast'", "Invalid error message");

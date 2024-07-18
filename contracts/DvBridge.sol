@@ -23,7 +23,6 @@ contract DvBridge is ValidatorSignatureManager, TransferManager {
     event TransferCompleted(address recipient, uint256 amount, uint256 source_chain, uint256 destination_chain, address token_in, address token_out, string nonce, bytes[] signatures, address msg_sender);
     event TransferBlocked(uint256 source_chain, uint256 destination_chain, string nonce, bytes[] signatures);
     event FundsRecovered(address recipient, uint256 amount, uint256 source_chain, uint256 destination_chain, address token_in, string nonce, bytes[] signatures);
-    event BridgeLocked(bool locked);
 
     // Constructor to initialize the contract with chain ID, validator fee, and validators
     constructor(uint256 _chain_id, uint256 _validator_fee, address[] memory validators) ValidatorSignatureManager(validators) {
@@ -38,7 +37,7 @@ contract DvBridge is ValidatorSignatureManager, TransferManager {
         require(amount > 0, "Amount cannot be zero");
         require(source_chain == chain_id, "Invalid source chain");
         require(destination_chain != chain_id, "Invalid destination chain");
-        require(isTransferAllowed(destination_chain, token_in, token_out, amount), "Transfer not allowed or amount exceeds maximum allowed");
+        require(isTransferAllowed(source_chain, destination_chain, token_in, token_out, amount), "Transfer not allowed or amount exceeds maximum allowed");
         require(!locked, "Bridge is locked");
 
         // Check that the user has sent enough funds for the transfer and validator fees
@@ -59,7 +58,7 @@ contract DvBridge is ValidatorSignatureManager, TransferManager {
 
         uint256 balance_after = __balanceOf(address(this), token_in);
 
-        // Check for amount of tokens transferred (in case of ERC20 tokens with tranfer fees)
+        // Check for amount of tokens transferred (in case of ERC20 tokens with transfer fees)
         uint256 transfered_amount;
         if(token_in == address(0)) {
             transfered_amount = amount;
@@ -96,7 +95,7 @@ contract DvBridge is ValidatorSignatureManager, TransferManager {
         if(locked) {
             require(isValidator(recipient), "Recipient is not a validator");
         } else {
-            require(isTransferAllowed(destination_chain, token_in, token_out, amount), "Transfer not allowed or amount exceeds maximum allowed");
+            require(isTransferAllowed(source_chain, destination_chain, token_in, token_out, amount), "Transfer not allowed or amount exceeds maximum allowed");
         }
 
         // Verify signatures
@@ -122,8 +121,6 @@ contract DvBridge is ValidatorSignatureManager, TransferManager {
 
         lockVotes[nonce] = true;
         locked = _locked;
-
-        emit BridgeLocked(locked);
     }
 
     // Handles validator voting for adding or removing validators
@@ -143,12 +140,12 @@ contract DvBridge is ValidatorSignatureManager, TransferManager {
     }
 
     // Sets allowed transfer parameters for a specific destination chain and token
-    function setAllowedTransfer(uint256 destination_chain, address token_in, address token_out, bool active, uint256 max_amount, string memory nonce, bytes[] memory signatures) onlyValidator(msg.sender) public {
-        bytes32 message = getAllowedTransferMessage(destination_chain, token_in, token_out, active, max_amount, nonce);
+    function setAllowedTransfer(uint256 source_chain, uint256 destination_chain, address token_in, address token_out, bool active, uint256 max_amount, string memory nonce, bytes[] memory signatures) onlyValidator(msg.sender) public {
+        bytes32 message = getAllowedTransferMessage(source_chain, destination_chain, token_in, token_out, active, max_amount, nonce);
         bool valid = verifySignatures(message, signatures);
         require(valid, "Invalid signatures");
 
-        __setAllowedTransfer(destination_chain, token_in, token_out, active, max_amount, nonce);
+        __setAllowedTransfer(source_chain, destination_chain, token_in, token_out, active, max_amount, nonce);
     }
 
     // Sets the validator reward fee

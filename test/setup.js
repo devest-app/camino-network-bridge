@@ -49,6 +49,7 @@ async function deployAndSetupContracts() {
         // ALLOWED TOKENS SETUP
         // Add token to allowed tokens
         let destination_chain = 321;
+        source_chain = 123;
         let token_in = "0x0000000000000000000000000000000000000000";
         let token_out = token_contract.address;
         const active = true;
@@ -56,54 +57,55 @@ async function deployAndSetupContracts() {
         let nonce = "1";
 
         // get message for signing
-        let message = await bridge_contract.getAllowedTransferMessage(destination_chain, token_in, token_out, active, max_amount, nonce);
+        let message = await bridge_contract.getAllowedTransferMessage(source_chain, destination_chain, token_in, token_out, active, max_amount, nonce);
         let messageHashBuffer = Buffer(message.replace("0x", ""), "hex")
 
         // sign the message - with all validators
         let signature = await validators[0].signMessage(messageHashBuffer);
 
         // add token to allowed tokens
-        await bridge_contract.connect(validators[0]).setAllowedTransfer(destination_chain, token_in, token_out, active, max_amount, nonce, [signature]);
+        await bridge_contract.connect(validators[0]).setAllowedTransfer(source_chain, destination_chain, token_in, token_out, active, max_amount, nonce, [signature]);
 
         // Needs reversed as well
         nonce = "2";
         token_in = token_contract.address;
         token_out = "0x0000000000000000000000000000000000000000";
 
-        message = await bridge_contract.getAllowedTransferMessage(destination_chain, token_in, token_out, active, max_amount, nonce);
+        message = await bridge_contract.getAllowedTransferMessage(source_chain, destination_chain, token_in, token_out, active, max_amount, nonce);
         messageHashBuffer = Buffer(message.replace("0x", ""), "hex")
 
         // sign the message - with all validators
         signature = await validators[0].signMessage(messageHashBuffer);
 
         // add token to allowed tokens
-        await bridge_contract.connect(validators[0]).setAllowedTransfer(destination_chain, token_in, token_out, active, max_amount, nonce, [signature]);
+        await bridge_contract.connect(validators[0]).setAllowedTransfer(source_chain, destination_chain, token_in, token_out, active, max_amount, nonce, [signature]);
 
         // Do same for other chain id
         destination_chain = 123;
+        source_chain = 321;
         nonce = "3";
 
-        message = await bridge_contract.getAllowedTransferMessage(destination_chain, token_in, token_out, active, max_amount, nonce);
+        message = await bridge_contract.getAllowedTransferMessage(source_chain, destination_chain, token_in, token_out, active, max_amount, nonce);
         messageHashBuffer = Buffer(message.replace("0x", ""), "hex")
 
         // sign the message - with all validators
         signature = await validators[0].signMessage(messageHashBuffer);
 
         // add token to allowed tokens
-        await bridge_contract.connect(validators[0]).setAllowedTransfer(destination_chain, token_in, token_out, active, max_amount, nonce, [signature]);
+        await bridge_contract.connect(validators[0]).setAllowedTransfer(source_chain, destination_chain, token_in, token_out, active, max_amount, nonce, [signature]);
         // Needs reversed as well
         nonce = "4";
         token_in = "0x0000000000000000000000000000000000000000";
         token_out = token_contract.address;
 
-        message = await bridge_contract.getAllowedTransferMessage(destination_chain, token_in, token_out, active, max_amount, nonce);
+        message = await bridge_contract.getAllowedTransferMessage(source_chain, destination_chain, token_in, token_out, active, max_amount, nonce);
         messageHashBuffer = Buffer(message.replace("0x", ""), "hex")
 
         // sign the message - with all validators
         signature = await validators[0].signMessage(messageHashBuffer);
 
         // add token to allowed tokens
-        await bridge_contract.connect(validators[0]).setAllowedTransfer(destination_chain, token_in, token_out, active, max_amount, nonce, [signature]);
+        await bridge_contract.connect(validators[0]).setAllowedTransfer(source_chain, destination_chain, token_in, token_out, active, max_amount, nonce, [signature]);
 
         // VALIDATORS SETUP
         // get message for signing

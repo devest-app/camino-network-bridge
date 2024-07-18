@@ -17,7 +17,7 @@ contract TransferManager is TokenController {
     mapping (string => bool) public allowedTransferVotes;
 
     // Mapping to manage allowed transfers between token pairs on different chains
-    mapping (uint256 => mapping(address => DestinationToken)) public allowed_transfers;
+    mapping (uint256 => mapping(uint256 => mapping(address => DestinationToken))) public allowed_transfers;
 
     // Mapping to track transfer records
     mapping(string => bool) public transfers;
@@ -25,11 +25,11 @@ contract TransferManager is TokenController {
     constructor() {}
 
     // Internal function to set allowed transfer details for a destination chain and token pair
-    function __setAllowedTransfer(uint256 destination_chain, address token_in, address token_out, bool active, uint256 max_amount, string memory nonce) internal {
+    function __setAllowedTransfer(uint256 source_chain, uint256 destination_chain, address token_in, address token_out, bool active, uint256 max_amount, string memory nonce) internal {
         require(!allowedTransferVotes[nonce], "Transfer vote already cast");
         allowedTransferVotes[nonce] = true;
 
-        allowed_transfers[destination_chain][token_in] = DestinationToken(token_out, active, max_amount);
+        allowed_transfers[source_chain][destination_chain][token_in] = DestinationToken(token_out, active, max_amount);
     }
 
     // Function to check if a transfer record exists by its ID
@@ -38,8 +38,8 @@ contract TransferManager is TokenController {
     }
 
     // Function to retrieve allowed transfer details for a specific destination chain and token pair
-    function getAllowedTransfer(uint256 destination_chain, address token_in) external view returns (DestinationToken memory) {
-        return allowed_transfers[destination_chain][token_in];
+    function getAllowedTransfer(uint256 source_chain, uint256 destination_chain, address token_in) external view returns (DestinationToken memory) {
+        return allowed_transfers[source_chain][destination_chain][token_in];
     }
 
     // Internal function to complete a transfer and create a record for it
@@ -69,8 +69,8 @@ contract TransferManager is TokenController {
     }
 
     // Internal function to verify if a transfer is allowed based on set parameters
-    function isTransferAllowed(uint256 destination_chain, address token_in, address token_out, uint256 amount) internal view returns (bool) {
-        DestinationToken memory destination_token = allowed_transfers[destination_chain][token_in];
+    function isTransferAllowed(uint256 source_chain, uint256 destination_chain, address token_in, address token_out, uint256 amount) internal view returns (bool) {
+        DestinationToken memory destination_token = allowed_transfers[source_chain][destination_chain][token_in];
         return destination_token.active && token_out == destination_token.token_out && amount <= destination_token.max_amount;
     }
 }

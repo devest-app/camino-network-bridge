@@ -48,9 +48,9 @@ contract ValidatorSignatureManager {
     }
 
     // Generates a message for setting allowed transfers
-    function getAllowedTransferMessage(uint256 destination_chain, address token_in, address token_out, bool active, uint256 max_amount, string memory nonce) 
+    function getAllowedTransferMessage(uint256 source_chain,uint256 destination_chain, address token_in, address token_out, bool active, uint256 max_amount, string memory nonce) 
     public pure returns (bytes32) {
-        return keccak256(abi.encodePacked(destination_chain, token_in, token_out, active, max_amount, nonce));
+        return keccak256(abi.encodePacked(source_chain, destination_chain, token_in, token_out, active, max_amount, nonce));
     }
 
     // Generates a message for setting allowed transfers
