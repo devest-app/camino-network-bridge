@@ -26,17 +26,21 @@ describe('Bridge Lock', () => {
     });
     it("Locking [FAIL] - sender is not a validator", async function () {
         try {
+            const value = 0;
+            const lock = false;
             const nonce = "123456789";
-            await bridge_contract.connect(bridge_user).setLockedState(nonce, true, []);
+            await bridge_contract.connect(bridge_user).modifyRewardsAndLock(value, lock, nonce, []);
         } catch (error) {
             assert.strictEqual(error.message, "VM Exception while processing transaction: reverted with reason string 'Not a validator'", "Invalid error message");
         }
     });
 
     it("Locking [SUCCESS] - lock the bridge", async function () {
+        const value = 0;
+        const lock = true;
         const nonce = "123456789";
 
-        const message = await bridge_contract.getLockMessage(nonce);
+        const message = await bridge_contract.getRewardLockMessage(value, lock, nonce);
         const messageHashBuffer = Buffer(message.replace("0x", ""), "hex")
 
         // sign the message - with all validators
@@ -44,7 +48,7 @@ describe('Bridge Lock', () => {
         const signature2 = await validators[1].signMessage(messageHashBuffer);
         const signature3 = await validators[2].signMessage(messageHashBuffer);
 
-        const transaction = await bridge_contract.connect(validators[2]).setLockedState(nonce, true, [signature1, signature2, signature3]);
+        const transaction = await bridge_contract.connect(validators[2]).modifyRewardsAndLock(value, lock, nonce, [signature1, signature2, signature3]);
         assert.notEqual(transaction, undefined || null, "Invalid error message");
     });
 
@@ -65,9 +69,11 @@ describe('Bridge Lock', () => {
     });
 
     it("Locking [FAIL] - cannot lock the bridge twice with same signatures", async function () {
+        const value = 0;
+        const lock = true;
         const nonce = "123456789";
 
-        const message = await bridge_contract.getLockMessage(nonce);
+        const message = await bridge_contract.getRewardLockMessage(value, lock, nonce);
         const messageHashBuffer = Buffer(message.replace("0x", ""), "hex")
 
         // sign the message - with all validators
@@ -76,7 +82,7 @@ describe('Bridge Lock', () => {
         const signature3 = await validators[2].signMessage(messageHashBuffer);
 
         try {
-            await bridge_contract.connect(validators[2]).setLockedState(nonce, true, [signature1, signature2, signature3]);
+            await bridge_contract.connect(validators[2]).modifyRewardsAndLock(value, lock, nonce, [signature1, signature2, signature3]);
         }
         catch (error) {
             assert.strictEqual(error.message, "VM Exception while processing transaction: reverted with reason string 'Vote already cast'", "Invalid error message");
@@ -120,9 +126,11 @@ describe('Bridge Lock', () => {
 
     // unlock the bridge
     it("Unlocking [SUCCESS] - unlock the bridge", async function () {
+        const value = 100;
+        const lock = false;
         const nonce = "987654321";
 
-        const message = await bridge_contract.getLockMessage(nonce);
+        const message = await bridge_contract.getRewardLockMessage(value, lock, nonce);
         const messageHashBuffer = Buffer(message.replace("0x", ""), "hex")
 
         // sign the message - with all validators
@@ -130,7 +138,7 @@ describe('Bridge Lock', () => {
         const signature2 = await validators[1].signMessage(messageHashBuffer);
         const signature3 = await validators[2].signMessage(messageHashBuffer);
 
-        const transaction = await bridge_contract.connect(validators[2]).setLockedState(nonce, false, [signature1, signature2, signature3]);
+        const transaction = await bridge_contract.connect(validators[2]).modifyRewardsAndLock(value, lock, nonce, [signature1, signature2, signature3]);
         assert.notEqual(transaction, undefined || null, "Invalid error message");
     });
 

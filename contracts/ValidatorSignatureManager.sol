@@ -6,57 +6,145 @@ import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 // A contract to handle signature verification with a set of validators
 contract ValidatorSignatureManager {
 
-    mapping (string => bool) validatorVotes;
-
     using ECDSA for bytes32;
 
-    address[] validators;
+    address[] validators; // List of validators
+    uint256 chain_id; // ID of the current chain
+
+    bytes32 public DOMAIN_SEPARATOR;
+
+    bytes32 private constant TRANSACTION_MESSAGE_HASH  = keccak256("TransactionMessage(address recipient, uint256 amount, uint256 source_chain, uint256 destination_chain, address token_in, address token_out, string memory nonce)");
+    bytes32 private constant RECOVER_FUNDS_MESSAGE_HASH  = keccak256("RecoverFundsMessage(address recipient, uint256 amount, uint256 source_chain, uint256 destination_chain, address token_in, string memory nonce)");
+    bytes32 private constant BLOCK_TRANSFER_MESSAGE_HASH  = keccak256("BlockTransferMessage(uint256 source_chain, uint256 destination_chain, string memory nonce)");
+    bytes32 private constant VOTE_VALIDATOR_MESSAGE_HASH  = keccak256("VoteValidatorMessage(uint256 vote_type, address value, string memory nonce)");
+    bytes32 private constant VOTE_REWARD_LOCK_MESSAGE_HASH  = keccak256("VoteRewardMessage(uint256 amount, bool lock, string memory nonce)");
+    bytes32 private constant ALLOWED_TRANSFER_MESSAGE_HASH  = keccak256("AllowedTransferMessage(uint256 source_chain,uint256 destination_chain, address token_in, address token_out, bool active, uint256 max_amount, string memory nonce)");
+    bytes32 private constant LOCK_MESSAGE_HASH  = keccak256("LockMessage(string memory nonce)");
+
+
+    mapping (string => bool) validatorVotes;
+
 
     // Constructor to initialize the contract with a list of validators
-    constructor(address[] memory _validators) {
+    constructor(address[] memory _validators, uint256 _chain_id) {
         validators = _validators;
+        chain_id = _chain_id;
+
+        DOMAIN_SEPARATOR = keccak256(abi.encode(
+            keccak256("EIP712Domain(uint256 chainId, address verifyingContract)"),
+            chain_id,
+            address(this)
+        ));
     }
+
+    function getDigest(bytes32 messageHash) public view returns (bytes32) {
+        return keccak256(abi.encode(
+            "\x19\x01",
+            DOMAIN_SEPARATOR, // Domain separator (chain_id, address)
+            messageHash
+        ));
+    }
+            
 
     // Generates a message of transaction details
     function getTransactionMessage(address recipient, uint256 amount, uint256 source_chain, uint256 destination_chain, address token_in, address token_out, string memory nonce) 
-    public pure returns (bytes32) {
-        return keccak256(abi.encodePacked(recipient, amount, source_chain, destination_chain, token_in, token_out, nonce, "1"));
+    public view returns (bytes32) {
+        return getDigest(
+            keccak256(
+                abi.encode(
+                    TRANSACTION_MESSAGE_HASH,
+                    recipient,
+                    amount, 
+                    source_chain, 
+                    destination_chain, 
+                    token_in, 
+                    token_out,
+                    keccak256(bytes(nonce))
+                )
+            )
+        );
     }
 
     // Generates a message of transaction details
     function getRecoverFundsMessage(address recipient, uint256 amount, uint256 source_chain, uint256 destination_chain, address token_in, string memory nonce) 
-    public pure returns (bytes32) {
-        return keccak256(abi.encodePacked(recipient, amount, source_chain, destination_chain, token_in, nonce, "2"));
+    public view returns (bytes32) {
+        return getDigest(
+            keccak256(
+                abi.encode(
+                    RECOVER_FUNDS_MESSAGE_HASH,
+                    recipient, 
+                    amount, 
+                    source_chain, 
+                    destination_chain, 
+                    token_in,
+                    keccak256(bytes(nonce))
+                )
+            )
+        );
     }
 
     // Generates a message for blocking transfers
     function getBlockTransferMessage(uint256 source_chain, uint256 destination_chain, string memory nonce) 
-    public pure returns (bytes32) {
-        return keccak256(abi.encodePacked(source_chain, destination_chain, nonce, "3"));
+    public view returns (bytes32) {
+        return getDigest(
+            keccak256(
+                abi.encode(
+                    BLOCK_TRANSFER_MESSAGE_HASH,
+                    source_chain, 
+                    destination_chain, 
+                    keccak256(bytes(nonce))
+                )
+            )
+        );
     }
 
     // Generates a message for validator vote
     function getVoteValidatorMessage(uint256 vote_type, address value, string memory nonce) 
-    public pure returns (bytes32) {
-        return keccak256(abi.encodePacked(vote_type, value, nonce));
+    public view returns (bytes32) {
+        return getDigest(
+            keccak256(
+                abi.encode(
+                    VOTE_VALIDATOR_MESSAGE_HASH,
+                    vote_type, 
+                    value, 
+                    keccak256(bytes(nonce))
+                )
+            )
+        );
     }
 
     // Generates a message for reward vote
-    function getVoteRewardMessage(uint256 amount, string memory nonce) 
-    public pure returns (bytes32) {
-        return keccak256(abi.encodePacked(amount, nonce));
+    function getRewardLockMessage(uint256 amount, bool lock, string memory nonce) 
+    public view returns (bytes32) {
+        return getDigest(
+            keccak256(
+                abi.encode(
+                    VOTE_REWARD_LOCK_MESSAGE_HASH,
+                    amount,
+                    lock,
+                    keccak256(bytes(nonce))
+                )
+            )
+        );
     }
 
     // Generates a message for setting allowed transfers
     function getAllowedTransferMessage(uint256 source_chain,uint256 destination_chain, address token_in, address token_out, bool active, uint256 max_amount, string memory nonce) 
-    public pure returns (bytes32) {
-        return keccak256(abi.encodePacked(source_chain, destination_chain, token_in, token_out, active, max_amount, nonce));
-    }
-
-    // Generates a message for setting allowed transfers
-    function getLockMessage(string memory nonce) 
-    public pure returns (bytes32) {
-        return keccak256(abi.encodePacked(nonce));
+    public view returns (bytes32) {
+        return getDigest(
+            keccak256(
+                abi.encode(
+                    ALLOWED_TRANSFER_MESSAGE_HASH,
+                    source_chain, 
+                    destination_chain, 
+                    token_in, 
+                    token_out, 
+                    active, 
+                    max_amount, 
+                    keccak256(bytes(nonce))
+                )
+            )
+        );
     }
 
     // Verifies if the provided signatures are valid and from validators

@@ -242,13 +242,14 @@ describe('Votings And Setup', () => {
         try {
             const nonce = "1";
             const value = 100;
+            const lock = false;
 
             // check there is a reward fee
             const contract_reward_fee_before = await bridge_contract.validator_fee();
             assert.equal(contract_reward_fee_before.toNumber(), 80, "Invalid reward fee");
 
             // get message for signing
-            const message = await bridge_contract.getVoteRewardMessage(value, nonce);
+            const message = await bridge_contract.getRewardLockMessage(value, false, nonce);
             const messageHashBuffer = Buffer(message.replace("0x", ""), "hex")
 
             // sign the message - with all validators
@@ -257,7 +258,7 @@ describe('Votings And Setup', () => {
             const signature3 = await validators[2].signMessage(messageHashBuffer);
 
             // set reward fee
-            const _msg = await bridge_contract.connect(validators[0]).setValidatorReward(value, nonce, [signature1, signature2, signature3]);
+            const _msg = await bridge_contract.connect(validators[0]).modifyRewardsAndLock(value, lock, nonce, [signature1, signature2, signature3]);
 
             // check there is reward fee
             const contract_reward_fee = await bridge_contract.validator_fee();
@@ -271,9 +272,10 @@ describe('Votings And Setup', () => {
         try {
             const nonce = "1";
             const value = 100;
+            const lock = false;
 
             // get message for signing
-            const message = await bridge_contract.getVoteRewardMessage(value, nonce);
+            const message = await bridge_contract.getRewardLockMessage(value, lock, nonce);
             const messageHashBuffer = Buffer(message.replace("0x", ""), "hex")
 
             // sign the message - with all validators
@@ -282,7 +284,7 @@ describe('Votings And Setup', () => {
             const signature3 = await validators[2].signMessage(messageHashBuffer);
 
             // set reward fee
-            const _msg = await bridge_contract.connect(bridge_user).setValidatorReward(value, nonce, [signature1, signature2, signature3]);
+            const _msg = await bridge_contract.connect(bridge_user).modifyRewardsAndLock(value, lock, nonce, [signature1, signature2, signature3]);
         } catch (error) {
             assert.strictEqual(error.message, "VM Exception while processing transaction: reverted with reason string 'Not a validator'", "Invalid error message");
         }
@@ -292,9 +294,10 @@ describe('Votings And Setup', () => {
         try {
             const nonce = "1";
             const value = 100;
+            const lock = false;
 
             // get message for signing
-            const message = await bridge_contract.getVoteRewardMessage(value, nonce);
+            const message = await bridge_contract.getRewardLockMessage(value, lock, nonce);
             const messageHashBuffer = Buffer(message.replace("0x", ""), "hex")
 
             // sign the message - with all validators
@@ -303,7 +306,7 @@ describe('Votings And Setup', () => {
             const signature3 = await validators[2].signMessage(messageHashBuffer);
 
             // set reward fee
-            const _msg = await bridge_contract.connect(validators[0]).setValidatorReward(value, nonce, [signature1, signature2, signature3]);
+            const _msg = await bridge_contract.connect(validators[0]).modifyRewardsAndLock(value, lock, nonce, [signature1, signature2, signature3]);
         } catch (error) {
             assert.strictEqual(error.message, "VM Exception while processing transaction: reverted with reason string 'Vote already cast'", "Invalid error message");
         }
@@ -314,9 +317,10 @@ describe('Votings And Setup', () => {
         try {
             const nonce = "2";
             const value = 150;
+            const lock = false;
 
             // get message for signing
-            const message = await bridge_contract.getVoteRewardMessage(value, nonce);
+            const message = await bridge_contract.getRewardLockMessage(value, lock, nonce);
             const messageHashBuffer = Buffer(message.replace("0x", ""), "hex")
 
             // sign the message - with all validators
@@ -324,7 +328,7 @@ describe('Votings And Setup', () => {
             const signature2 = await validators[1].signMessage(messageHashBuffer);
 
             // set reward fee
-            const _msg = await bridge_contract.connect(validators[0]).setValidatorReward(value, nonce, [signature1, signature2]);
+            const _msg = await bridge_contract.connect(validators[0]).modifyRewardsAndLock(value, lock, nonce, [signature1, signature2]);
 
             // check there is reward fee
             const contract_reward_fee = await bridge_contract.validator_fee();

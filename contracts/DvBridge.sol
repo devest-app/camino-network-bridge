@@ -10,7 +10,6 @@ import "./TransferManager.sol";
 contract DvBridge is ValidatorSignatureManager, TransferManager {
 
     bool public locked; // Time until the bridge is locked for transfers to non-validators
-    uint256 chain_id; // ID of the current chain
     uint256 public validator_fee; // Fee that validators receive for completing transfers (each of the validators gets the same amount)
 
     mapping (string => bool) validatorFeeVotes;
@@ -25,8 +24,7 @@ contract DvBridge is ValidatorSignatureManager, TransferManager {
     event FundsRecovered(address recipient, uint256 amount, uint256 source_chain, uint256 destination_chain, address token_in, string nonce, bytes[] signatures);
 
     // Constructor to initialize the contract with chain ID, validator fee, and validators
-    constructor(uint256 _chain_id, uint256 _validator_fee, address[] memory validators) ValidatorSignatureManager(validators) {
-        chain_id = _chain_id;
+    constructor(uint256 _chain_id, uint256 _validator_fee, address[] memory validators) ValidatorSignatureManager(validators, _chain_id) {
         validator_fee = _validator_fee;
     }
 
@@ -110,19 +108,6 @@ contract DvBridge is ValidatorSignatureManager, TransferManager {
         return true;
     }
 
-    // Lock or unlock the bridge for transfers
-    function setLockedState(string memory nonce, bool _locked, bytes[] memory signatures) public onlyValidator(msg.sender) {
-        require(!lockVotes[nonce], "Vote already cast");
-
-        // Verify signatures
-        bytes32 message = getLockMessage(nonce);
-        bool valid = verifySignatures(message, signatures);
-        require(valid, "Invalid signatures");
-
-        lockVotes[nonce] = true;
-        locked = _locked;
-    }
-
     // Handles validator voting for adding or removing validators
     function voteValidator(uint256 vote_type, address value, string memory nonce,  bytes[] memory signatures) public payable onlyValidator(msg.sender) returns (bool) {
         require(vote_type == 1 || vote_type == 2, "Invalid vote");
@@ -149,15 +134,16 @@ contract DvBridge is ValidatorSignatureManager, TransferManager {
     }
 
     // Sets the validator reward fee
-    function setValidatorReward(uint256 new_fee, string memory nonce, bytes[] memory signatures) onlyValidator(msg.sender) public payable returns (bool) {
+    function modifyRewardsAndLock(uint256 new_fee, bool lock, string memory nonce, bytes[] memory signatures) onlyValidator(msg.sender) public payable returns (bool) {
         require(!validatorFeeVotes[nonce], "Vote already cast");
         
-        bytes32 message = getVoteRewardMessage(new_fee, nonce);
+        bytes32 message = getRewardLockMessage(new_fee, lock, nonce);
         bool valid = verifySignatures(message, signatures);
         require(valid, "Invalid signatures");
 
         validatorFeeVotes[nonce] = true;
         validator_fee = new_fee;
+        locked = lock;
 
         return true;
     }
