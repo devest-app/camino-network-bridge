@@ -12,8 +12,7 @@ contract DvBridge is ValidatorSignatureManager, TransferManager {
     bool public locked; // Time until the bridge is locked for transfers to non-validators
     uint256 public validator_fee; // Fee that validators receive for completing transfers (each of the validators gets the same amount)
 
-    mapping (string => bool) validatorFeeVotes;
-    mapping (string => bool) lockVotes;
+    mapping (string => bool) validatorFeeAndLockVotes;
 
     using ECDSA for bytes32; // Enable ECDSA operations on bytes32 types
     
@@ -135,13 +134,13 @@ contract DvBridge is ValidatorSignatureManager, TransferManager {
 
     // Sets the validator reward fee
     function modifyRewardsAndLock(uint256 new_fee, bool lock, string memory nonce, bytes[] memory signatures) onlyValidator(msg.sender) public payable returns (bool) {
-        require(!validatorFeeVotes[nonce], "Vote already cast");
+        require(!validatorFeeAndLockVotes[nonce], "Vote already cast");
         
         bytes32 message = getRewardLockMessage(new_fee, lock, nonce);
         bool valid = verifySignatures(message, signatures);
         require(valid, "Invalid signatures");
 
-        validatorFeeVotes[nonce] = true;
+        validatorFeeAndLockVotes[nonce] = true;
         validator_fee = new_fee;
         locked = lock;
 
