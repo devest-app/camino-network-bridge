@@ -20,7 +20,7 @@ contract TransferManager is TokenController {
     mapping (uint256 => mapping(uint256 => mapping(address => DestinationToken))) public allowed_transfers;
 
     // Mapping to track transfer records
-    mapping(string => bool) public transfers;
+    mapping(bytes => bool) public transfers;
 
     constructor() {}
 
@@ -33,7 +33,7 @@ contract TransferManager is TokenController {
     }
 
     // Function to check if a transfer record exists by its ID
-    function getTransfer(string memory transferId) external view returns (bool) {
+    function getTransfer(bytes memory transferId) external view returns (bool) {
         return transfers[transferId];
     }
 
@@ -44,7 +44,7 @@ contract TransferManager is TokenController {
 
     // Internal function to complete a transfer and create a record for it
     function _completeTransfer(address recipient, uint256 amount, uint256 source_chain, address token_out, string memory nonce) internal {
-        string memory transferId = string(abi.encodePacked(source_chain, nonce));
+        bytes memory transferId = abi.encodePacked(source_chain, nonce);
 
         require(!transfers[transferId], "Transfer already completed");
         transfers[transferId] = true;
@@ -53,7 +53,7 @@ contract TransferManager is TokenController {
     }
 
     function _recoverFunds(address recipient, uint256 amount, uint256 source_chain, address token_in, string memory nonce) internal {
-         string memory transferId = string(abi.encodePacked(source_chain, nonce, recipient));
+        bytes memory transferId = abi.encodePacked(source_chain, nonce, recipient);
 
         require(!transfers[transferId], "Transfer already completed");
         transfers[transferId] = true;
@@ -62,7 +62,7 @@ contract TransferManager is TokenController {
     }
 
     function _blockTransfer(uint256 source_chain, string memory nonce) internal {
-        string memory transferId = string(abi.encodePacked(source_chain, nonce));
+        bytes memory transferId = abi.encodePacked(source_chain, nonce);
 
         require(!transfers[transferId], "Transfer already blocked");
         transfers[transferId] = true;
