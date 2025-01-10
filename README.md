@@ -1,6 +1,6 @@
-# Devest Bridge Documentation
+# Camino Bridge Documentation
 ## Overview
-The Devest Bridge is a cross-chain token transfer protocol inspired by the Layer Zero approach. It leverages a multi-signature (multisig) mechanism where validator nodes collect and submit signatures to validate transactions. Unlike traditional methods, individual validator nodes do not submit separate transactions. Instead, one node gathers signatures from all validators and submits a single transaction to the smart contract. If at least half of the signatures are valid, the transaction is executed on the destination chain.
+The Camino Bridge is a cross-chain token transfer protocol inspired by the Layer Zero approach. It leverages a multi-signature (multisig) mechanism where validator nodes collect and submit signatures to validate transactions. Unlike traditional methods, individual validator nodes do not submit separate transactions. Instead, one node gathers signatures from all validators and submits a single transaction to the smart contract. If at least half of the signatures are valid, the transaction is executed on the destination chain.
 
 
 ![Alt text](docs/flow.png)
