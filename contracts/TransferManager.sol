@@ -15,7 +15,11 @@ contract TransferManager is TokenController {
 
     // Allowed transfer votes
     mapping (string => bool) public allowedTransferVotes;
+    // Mintable token votes
+    mapping (string => bool) public mintableTokenVotes;
 
+    // Mintable token types
+    mapping (address => bool) public mintable_tokens;
     // Mapping to manage allowed transfers between token pairs on different chains
     mapping (uint256 => mapping(uint256 => mapping(address => DestinationToken))) public allowed_transfers;
 
@@ -30,6 +34,13 @@ contract TransferManager is TokenController {
         allowedTransferVotes[nonce] = true;
 
         allowed_transfers[source_chain][destination_chain][token_in] = DestinationToken(token_out, active, max_amount);
+    }
+
+    function __setMintableToken(address token, bool mintable, string memory nonce) internal {
+        require(!mintableTokenVotes[nonce], "Mintable token vote already cast");
+        mintableTokenVotes[nonce] = true;
+
+        mintable_tokens[token] = mintable;
     }
 
     // Function to check if a transfer record exists by its ID
@@ -49,7 +60,12 @@ contract TransferManager is TokenController {
         require(!transfers[transferId], "Transfer already completed");
         transfers[transferId] = true;
 
-        __transfer(recipient, amount, token_out);
+        // Check if the token is mintable
+        if(mintable_tokens[token_out]) {
+            __mint(recipient, amount, token_out);
+        } else {
+            __transfer(recipient, amount, token_out);
+        }
     }
 
     function _recoverFunds(address recipient, uint256 amount, uint256 source_chain, address token_in, string memory nonce) internal {
@@ -58,7 +74,12 @@ contract TransferManager is TokenController {
         require(!transfers[transferId], "Transfer already completed");
         transfers[transferId] = true;
 
-        __transfer(recipient, amount, token_in);
+        // Check if the token is mintable
+        if(mintable_tokens[token_in]) {
+            __mint(recipient, amount, token_in);
+        } else {
+            __transfer(recipient, amount, token_in);
+        }
     }
 
     function _blockTransfer(uint256 source_chain, string memory nonce) internal {

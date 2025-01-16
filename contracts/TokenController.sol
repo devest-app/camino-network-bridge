@@ -4,7 +4,7 @@ pragma solidity ^0.8.12;
 // Importing the ERC20 token interface from OpenZeppelin
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-
+import "./interface/MintableERC20.sol";
 
 // A contract to manage token transfers, especially for cross-chain operations
 contract TokenController {
@@ -37,6 +37,18 @@ contract TokenController {
                 _token.safeTransfer(receiver, amount);
             }
         }
+    }
+
+    // Internal function to mint tokens
+    function __mint(address receiver, uint256 amount, address token) internal {
+        MintableERC20 _token = MintableERC20(token);
+        _token.mint(receiver, amount);
+    }
+
+    // Internal function to burn tokens
+    function __burn(address receiver, uint256 amount, address token) internal {
+        MintableERC20 _token = MintableERC20(token);
+        _token.burn(receiver, amount);
     }
 
     // Internal function to check if the allowance for a token is sufficient for a transfer

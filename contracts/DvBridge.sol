@@ -38,20 +38,26 @@ contract DvBridge is ValidatorSignatureManager, TransferManager {
         require(!locked, "Bridge is locked");
 
         // Check that the user has sent enough funds for the transfer and validator fees
-        uint256 total_amount;
+        uint256 native_token_amount;
         if(token_in == address(0)) {
-            total_amount = amount + (validator_fee * validators.length);
-            require(msg.value >= total_amount, "Insufficient funds provided (value)");
+            native_token_amount = amount + (validator_fee * validators.length);
+            require(msg.value >= native_token_amount, "Insufficient funds provided (value)");
         } else {
-            total_amount = (validator_fee * validators.length);
-            require(msg.value >= total_amount, "Insufficient funds provided (value)");
+            native_token_amount = (validator_fee * validators.length);
+            require(msg.value >= native_token_amount, "Insufficient funds provided (value)");
         }
         
         uint256 balance_before = __balanceOf(address(this), token_in);
 
-        // Transfer tokens to the contract
-        __allowance(msg.sender, amount, token_in);
-        __transfer(address(this), amount, token_in);
+        // check if the token is mintable
+        if(mintable_tokens[token_in]) {
+            // burn tokens from the sender
+            __burn(msg.sender, amount, token_in);
+        } else {
+            // Transfer tokens to the contract
+            __allowance(msg.sender, amount, token_in);
+            __transfer(address(this), amount, token_in);
+        }
 
         uint256 balance_after = __balanceOf(address(this), token_in);
 
@@ -69,8 +75,8 @@ contract DvBridge is ValidatorSignatureManager, TransferManager {
         rewardValidators(validator_fee);
 
         // return excess funds to the sender
-        if(msg.value > total_amount) {
-            (bool success, ) = msg.sender.call{value: msg.value - total_amount}("");
+        if(msg.value > native_token_amount) {
+            (bool success, ) = msg.sender.call{value: msg.value - native_token_amount}("");
             require(success, "Transfer failed");
         }
 
@@ -177,6 +183,17 @@ contract DvBridge is ValidatorSignatureManager, TransferManager {
         _blockTransfer(source_chain, nonce);
 
         emit TransferBlocked(source_chain, destination_chain, nonce, signatures);
+
+        return true;
+    }
+
+    // Function to set a token as mintable
+    function setMintableToken(address token, bool mintable, string memory nonce, bytes[] memory signatures) onlyValidator(msg.sender) public returns (bool) {
+        bytes32 message = getMintableTokenMessage(token, mintable, nonce);
+        bool valid = verifySignatures(message, signatures);
+        require(valid, "Invalid signatures");
+
+        __setMintableToken(token, mintable, nonce);
 
         return true;
     }

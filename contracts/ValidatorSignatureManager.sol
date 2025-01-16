@@ -19,6 +19,7 @@ contract ValidatorSignatureManager {
     bytes32 private constant VOTE_VALIDATOR_MESSAGE_HASH  = keccak256("VoteValidatorMessage(uint256 vote_type, address value, string memory nonce)");
     bytes32 private constant VOTE_REWARD_LOCK_MESSAGE_HASH  = keccak256("VoteRewardMessage(uint256 amount, bool lock, string memory nonce)");
     bytes32 private constant ALLOWED_TRANSFER_MESSAGE_HASH  = keccak256("AllowedTransferMessage(uint256 source_chain,uint256 destination_chain, address token_in, address token_out, bool active, uint256 max_amount, string memory nonce)");
+    bytes32 private constant MINTABLE_TOKEN_MESSAGE_HASH  = keccak256("MintableTokenMessage(address token, bool mintable, string memory nonce)");
     bytes32 private constant LOCK_MESSAGE_HASH  = keccak256("LockMessage(string memory nonce)");
 
 
@@ -141,6 +142,21 @@ contract ValidatorSignatureManager {
                     token_out, 
                     active, 
                     max_amount, 
+                    keccak256(bytes(nonce))
+                )
+            )
+        );
+    }
+
+    // Generates a message for setting mintable token
+    function getMintableTokenMessage(address token, bool mintable, string memory nonce) 
+    public view returns (bytes32) {
+        return getDigest(
+            keccak256(
+                abi.encode(
+                    MINTABLE_TOKEN_MESSAGE_HASH,
+                    token,
+                    mintable,
                     keccak256(bytes(nonce))
                 )
             )
