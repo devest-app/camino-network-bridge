@@ -48,7 +48,7 @@ contract TokenController {
     // Internal function to burn tokens
     function __burn(address receiver, uint256 amount, address token) internal {
         MintableERC20 _token = MintableERC20(token);
-        _token.burn(receiver, amount);
+        _token.burnFrom(receiver, amount);
     }
 
     // Internal function to check if the allowance for a token is sufficient for a transfer
