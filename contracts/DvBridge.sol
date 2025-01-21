@@ -25,6 +25,8 @@ contract DvBridge is Initializable, UUPSUpgradeable, ValidatorSignatureManager, 
     event TransferBlocked(uint256 source_chain, uint256 destination_chain, string nonce, bytes[] signatures);
     event FundsRecovered(address recipient, uint256 amount, uint256 source_chain, uint256 destination_chain, address token_in, string nonce, bytes[] signatures);
 
+    bool private isUpgrading;
+
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
@@ -59,15 +61,9 @@ contract DvBridge is Initializable, UUPSUpgradeable, ValidatorSignatureManager, 
         
         uint256 balance_before = __balanceOf(address(this), token_in);
 
-        // check if the token is mintable
-        if(mintable_tokens[token_in]) {
-            // burn tokens from the sender
-            __burn(msg.sender, amount, token_in);
-        } else {
-            // Transfer tokens to the contract
-            __allowance(msg.sender, amount, token_in);
-            __transfer(address(this), amount, token_in);
-        }
+        // Transfer tokens to the contract
+        __allowance(msg.sender, amount, token_in);
+        __transfer(address(this), amount, token_in);
 
         uint256 balance_after = __balanceOf(address(this), token_in);
 
@@ -80,6 +76,12 @@ contract DvBridge is Initializable, UUPSUpgradeable, ValidatorSignatureManager, 
         }
 
         require(transfered_amount > 0, "No tokens transferred");
+
+        // check if the token is mintable
+        if(mintable_tokens[token_in]) {
+            // burn tokens from the contract
+            __burn(amount, token_in);
+        }
 
         // Reward validators
         rewardValidators(validator_fee);
@@ -208,7 +210,10 @@ contract DvBridge is Initializable, UUPSUpgradeable, ValidatorSignatureManager, 
         return true;
     }
 
-    function _authorizeUpgrade(address newImplementation) internal override onlyValidator(msg.sender) {}
+    function _authorizeUpgrade(address newImplementation) internal override onlyValidator(msg.sender) {
+        require(isUpgrading, "Upgrade not authorized");
+        isUpgrading = false;
+    }
 
     function upgradeToWithSignatures(
         address newImplementation, 
@@ -223,6 +228,7 @@ contract DvBridge is Initializable, UUPSUpgradeable, ValidatorSignatureManager, 
         require(valid, "Invalid signatures");
 
         upgradeVotes[nonce] = true;
+        isUpgrading = true;
 
         upgradeToAndCall(newImplementation, data);
     }

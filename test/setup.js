@@ -2,11 +2,13 @@ const { ethers, waffle, upgrades } = require("hardhat");
 
 let DvBridge;
 let TestToken;
+let WrapperdERC20PermissionedMint;
 
 let deployer;
 let bridge_user;
 let validators = [];
 let token_contract;
+let wrapped_erc20_permissioned_mint;
 let bridge_contract;
 let provider = waffle.provider;
 
@@ -14,7 +16,7 @@ async function deployContract() {
     // Get the contract factories
     DvBridge = await ethers.getContractFactory("DvBridge");
     TestToken = await ethers.getContractFactory("TestToken");
-    
+    WrappedERC20PermissionedMint = await ethers.getContractFactory("WrapperdERC20PermissionedMint");
 
     const [_deployer, validator1, validator2, validator3, user] = await ethers.getSigners();
     deployer = _deployer;
@@ -37,6 +39,18 @@ async function deployContract() {
     } catch (error) {
         console.log(error);
     }
+
+    try {
+        // Deploy bridge contract with proxy
+        wrapped_erc20_permissioned_mint = await upgrades.deployProxy(
+            WrappedERC20PermissionedMint,
+            ["WrappedERC20PermissionedMint", "WMTK", deployer.address], // initialization parameters
+            { initializer: 'initialize', kind: "uups", unsafeAllow: ['constructor'] },
+        );
+        await wrapped_erc20_permissioned_mint.deployed();
+    } catch (error) {
+        console.log(error);
+    }
    
     // Transfer some tokens to the bridge contracts and some to the user
     await token_contract.transfer(bridge_contract.address, ethers.utils.parseUnits("10", 18));
@@ -44,7 +58,7 @@ async function deployContract() {
 
     await deployer.sendTransaction({ to: bridge_contract.address, value: 1000000 });
   
-  return { bridge_contract, token_contract, deployer, validators, bridge_user };
+  return { bridge_contract, token_contract, deployer, validators, bridge_user, wrapped_erc20_permissioned_mint };
 }
 
 async function deployAndSetupContracts() {
@@ -53,7 +67,9 @@ async function deployAndSetupContracts() {
         token_contract,
         deployer, 
         validators, 
-        bridge_user } = await deployContract();
+        bridge_user,
+        wrapped_erc20_permissioned_mint
+    } = await deployContract();
 
         // ALLOWED TOKENS SETUP
         // Add token to allowed tokens
@@ -116,6 +132,60 @@ async function deployAndSetupContracts() {
         // add token to allowed tokens
         await bridge_contract.connect(validators[0]).setAllowedTransfer(source_chain, destination_chain, token_in, token_out, active, max_amount, nonce, [signature]);
 
+
+        source_chain = 123;
+        destination_chain = 456;
+        nonce = "5";
+
+        token_in = wrapped_erc20_permissioned_mint.address;
+        token_out = "0x0000000000000000000000000000000000000000";
+
+        message = await bridge_contract.getAllowedTransferMessage(source_chain, destination_chain, token_in, token_out, active, max_amount, nonce);
+        messageHashBuffer = Buffer(message.replace("0x", ""), "hex")
+
+        // sign the message - with all validators
+        signature = await validators[0].signMessage(messageHashBuffer);
+
+        // add wrapped token to allowed tokens
+        await bridge_contract.connect(validators[0]).setAllowedTransfer(source_chain, destination_chain, token_in, token_out, active, max_amount, nonce, [signature]);
+
+        // reverse the wrapped token to allowed tokens
+        nonce = "6";
+        token_in = "0x0000000000000000000000000000000000000000";
+        token_out = wrapped_erc20_permissioned_mint.address;
+        source_chain = 456;
+        destination_chain = 123;
+
+        message = await bridge_contract.getAllowedTransferMessage(source_chain, destination_chain, token_in, token_out, active, max_amount, nonce);
+        messageHashBuffer = Buffer(message.replace("0x", ""), "hex")
+
+        // sign the message - with all validators
+        signature = await validators[0].signMessage(messageHashBuffer);
+
+        // add wrapped token to allowed tokens
+        await bridge_contract.connect(validators[0]).setAllowedTransfer(source_chain, destination_chain, token_in, token_out, active, max_amount, nonce, [signature]);
+
+
+        try{
+            let minter_role = await wrapped_erc20_permissioned_mint.MINTER_ROLE();
+            // set token to be mintable
+            await wrapped_erc20_permissioned_mint.connect(deployer).grantRole(minter_role, bridge_contract.address);
+        } catch (error) {
+            console.log(error);
+        }
+
+        // set token as mintable on bridge contract
+
+        mintable_token = wrapped_erc20_permissioned_mint.address;
+
+        message = await bridge_contract.getMintableTokenMessage(mintable_token, true, nonce);
+        messageHashBuffer = Buffer(message.replace("0x", ""), "hex")
+
+        // sign the message - with all validators
+        signature = await validators[0].signMessage(messageHashBuffer);
+
+        await bridge_contract.connect(validators[0]).setMintableToken(mintable_token, true, nonce, [signature]);
+
         // VALIDATORS SETUP
         // get message for signing
         nonce = "4"
@@ -147,7 +217,9 @@ async function deployAndSetupContracts() {
         validators, 
         bridge_user, 
         token_contract, 
-        provider };
+        provider,
+        wrapped_erc20_permissioned_mint
+    };
 };
 
 
