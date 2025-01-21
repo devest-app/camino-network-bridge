@@ -21,7 +21,8 @@
     "@nomicfoundation/edr-linux-x64-gnu": "^0.3.8",
     "@nomiclabs/hardhat-ethers": "^2.2.3",
     "@nomiclabs/hardhat-waffle": "^2.0.6",
-    "@openzeppelin/hardhat-upgrades": "^1.0.0"
+    "@openzeppelin/hardhat-upgrades": "^1.0.0",
+    "solidity-coverage": "^0.8.14"
   },
   "author": "",
   "license": "ISC",

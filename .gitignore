@@ -8,3 +8,5 @@ build
 artifacts
 cache
 npm
+coverage/
+coverage.json
