@@ -1,4 +1,4 @@
-const { ethers, waffle } = require("hardhat");
+const { ethers, waffle, upgrades } = require("hardhat");
 
 let DvBridge;
 let TestToken;
@@ -26,8 +26,17 @@ async function deployContract() {
     // Deploy the contracts
     token_contract = await TestToken.deploy("TestToken", "MTK", ethers.utils.parseUnits("1000", 18));
     await token_contract.deployed();
-    bridge_contract = await DvBridge.deploy("123", "80", [validator1.address]);
-    await bridge_contract.deployed();
+    try {
+        // Deploy bridge contract with proxy
+        bridge_contract = await upgrades.deployProxy(
+            DvBridge,
+            ["123", "80", [validator1.address]], // initialization parameters
+            { initializer: 'initialize', kind: "uups", unsafeAllow: ['constructor'] },
+        );
+        await bridge_contract.deployed();
+    } catch (error) {
+        console.log(error);
+    }
    
     // Transfer some tokens to the bridge contracts and some to the user
     await token_contract.transfer(bridge_contract.address, ethers.utils.parseUnits("10", 18));

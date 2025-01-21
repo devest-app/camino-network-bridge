@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.12;
+pragma solidity ^0.8.22;
 
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
@@ -8,8 +8,8 @@ contract ValidatorSignatureManager {
 
     using ECDSA for bytes32;
 
-    address[] validators; // List of validators
-    uint256 chain_id; // ID of the current chain
+    address[] public validators; // List of validators
+    uint256 public chain_id; // ID of the current chain
 
     bytes32 public DOMAIN_SEPARATOR;
 
@@ -20,14 +20,13 @@ contract ValidatorSignatureManager {
     bytes32 private constant VOTE_REWARD_LOCK_MESSAGE_HASH  = keccak256("VoteRewardMessage(uint256 amount, bool lock, string memory nonce)");
     bytes32 private constant ALLOWED_TRANSFER_MESSAGE_HASH  = keccak256("AllowedTransferMessage(uint256 source_chain,uint256 destination_chain, address token_in, address token_out, bool active, uint256 max_amount, string memory nonce)");
     bytes32 private constant MINTABLE_TOKEN_MESSAGE_HASH  = keccak256("MintableTokenMessage(address token, bool mintable, string memory nonce)");
-    bytes32 private constant LOCK_MESSAGE_HASH  = keccak256("LockMessage(string memory nonce)");
+    bytes32 private constant UPGRADE_MESSAGE_HASH  = keccak256("UpgradeMessage(address newImplementation, string memory nonce)");
 
 
     mapping (string => bool) validatorVotes;
 
-
-    // Constructor to initialize the contract with a list of validators
-    constructor(address[] memory _validators, uint256 _chain_id) {
+    // Remove the constructor and move initialization to an initializer function
+    function __ValidatorSignatureManager_init(address[] memory _validators, uint256 _chain_id) internal {
         validators = _validators;
         chain_id = _chain_id;
 
@@ -163,14 +162,21 @@ contract ValidatorSignatureManager {
         );
     }
 
+    // Generates a message for upgrading the contract
+    function getUpgradeMessage(address newImplementation, string memory nonce) 
+    public view returns (bytes32) {
+        return getDigest(
+            keccak256(abi.encode(UPGRADE_MESSAGE_HASH, newImplementation, keccak256(bytes(nonce)))));
+    }
+
     // Verifies if the provided signatures are valid and from validators
     function verifySignatures(bytes32 messageHash, bytes[] memory signatures) internal view returns (bool) {
         uint256 count = 0;
         address[] memory uniqueSigners = new address[](signatures.length);
 
         // Turn the message into an eth signed message
-        bytes32 message = messageHash.toEthSignedMessageHash();
-        
+        bytes32 message = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", messageHash));
+
         // Check that the number of signatures is not greater than the number of validators
         require(signatures.length <= validators.length, "Too many signatures provided");
 

@@ -1,8 +1,9 @@
 require("@nomiclabs/hardhat-waffle");
+require("@openzeppelin/hardhat-upgrades");
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
-  solidity: "0.8.12",
+  solidity: "0.8.22",
   networks: {
     hardhat: {
     }
@@ -10,7 +11,7 @@ module.exports = {
   solidity: {
     compilers: [
       {
-        version: "0.8.12",
+        version: "0.8.22",
         settings: {
           optimizer: {
             enabled: true,

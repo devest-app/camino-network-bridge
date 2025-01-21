@@ -1,18 +1,21 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.12;
+pragma solidity ^0.8.22;
 
 // Importing necessary libraries and contracts
 import "./ValidatorSignatureManager.sol";
 import "./TransferManager.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 
 // DvBridge contract handles cross-chain transfers and validator management
-contract DvBridge is ValidatorSignatureManager, TransferManager {
+contract DvBridge is Initializable, UUPSUpgradeable, ValidatorSignatureManager, TransferManager {
 
     bool public locked; // Time until the bridge is locked for transfers to non-validators
     uint256 public validator_fee; // Fee that validators receive for completing transfers (each of the validators gets the same amount)
 
     mapping (string => bool) validatorFeeAndLockVotes;
+    mapping (string => bool) upgradeVotes;
 
     using ECDSA for bytes32; // Enable ECDSA operations on bytes32 types
     
@@ -22,8 +25,15 @@ contract DvBridge is ValidatorSignatureManager, TransferManager {
     event TransferBlocked(uint256 source_chain, uint256 destination_chain, string nonce, bytes[] signatures);
     event FundsRecovered(address recipient, uint256 amount, uint256 source_chain, uint256 destination_chain, address token_in, string nonce, bytes[] signatures);
 
-    // Constructor to initialize the contract with chain ID, validator fee, and validators
-    constructor(uint256 _chain_id, uint256 _validator_fee, address[] memory validators) ValidatorSignatureManager(validators, _chain_id) {
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
+    // Initialize function
+    function initialize(uint256 _chain_id, uint256 _validator_fee, address[] memory validators) public initializer {
+        __UUPSUpgradeable_init();
+        __ValidatorSignatureManager_init(validators, _chain_id);
         validator_fee = _validator_fee;
     }
 
@@ -197,4 +207,24 @@ contract DvBridge is ValidatorSignatureManager, TransferManager {
 
         return true;
     }
+
+    function _authorizeUpgrade(address newImplementation) internal override onlyValidator(msg.sender) {}
+
+    function upgradeToWithSignatures(
+        address newImplementation, 
+        bytes memory data,
+        string memory nonce,
+        bytes[] memory signatures
+    ) external onlyValidator(msg.sender) {
+        require(!upgradeVotes[nonce], "Already upgraded");
+
+        bytes32 message = getUpgradeMessage(newImplementation, nonce);
+        bool valid = verifySignatures(message, signatures);
+        require(valid, "Invalid signatures");
+
+        upgradeVotes[nonce] = true;
+
+        upgradeToAndCall(newImplementation, data);
+    }
+
 }

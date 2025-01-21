@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.12;
+pragma solidity ^0.8.22;
 
 // Import the TokenController contract to extend its functionalities
 import "./TokenController.sol";
@@ -26,7 +26,6 @@ contract TransferManager is TokenController {
     // Mapping to track transfer records
     mapping(bytes => bool) public transfers;
 
-    constructor() {}
 
     // Internal function to set allowed transfer details for a destination chain and token pair
     function __setAllowedTransfer(uint256 source_chain, uint256 destination_chain, address token_in, address token_out, bool active, uint256 max_amount, string memory nonce) internal {

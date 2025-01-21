@@ -1,5 +1,5 @@
 {
-  "name": "dv-stake-token",
+  "name": "dv-bridge",
   "version": "1.0.0",
   "description": "",
   "main": "truffle-config.js",
@@ -11,18 +11,17 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/devest-finance/dv-stake-pool.git"
+    "url": "git+https://github.com/devest-app/camino-network-bridge"
   },
   "dependencies": {
-    "@devest/contracts": "^1.2.2",
-    "@openzeppelin/contracts": "^4.8.3",
+    "@openzeppelin/contracts-upgradeable": "^5.2.0",
     "web3": "^4.7.0"
   },
   "devDependencies": {
     "@nomicfoundation/edr-linux-x64-gnu": "^0.3.8",
     "@nomiclabs/hardhat-ethers": "^2.2.3",
     "@nomiclabs/hardhat-waffle": "^2.0.6",
-    "hardhat": "^2.22.2"
+    "@openzeppelin/hardhat-upgrades": "^1.0.0"
   },
   "author": "",
   "license": "ISC",
