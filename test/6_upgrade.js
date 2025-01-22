@@ -115,7 +115,7 @@ describe("DvBridge Upgrade", function () {
                 nonce,
                 [signature1, signature2, signature3]
             );
-            assert(true);
+            assert(false);
         } catch (error) {
             assert.strictEqual(error.message, "VM Exception while processing transaction: reverted with custom error 'InvalidInitialization()'", "Invalid error message");
         }
@@ -125,5 +125,19 @@ describe("DvBridge Upgrade", function () {
         const upgradedBridge = await ethers.getContractAt("DvBridgeV2", bridge_contract.address);
         const version = await upgradedBridge.getVersion();
         assert.equal(version, "2.0");
+    });
+
+    it("Should not be able to call upgradeToAndCall", async function () {
+        try {
+            const initializeData = DvBridgeV2.interface.encodeFunctionData("initialize2", []);
+
+            // Create upgrade message and get signatures
+            const nonce = ethers.utils.formatBytes32String("upgrade_v2_2");
+            const message = await bridge_contract.connect(validators[0]).upgradeToAndCall(new_implementation, nonce);
+            console.log(message);
+        } catch (e) {
+            assert.strictEqual(e.message, "VM Exception while processing transaction: reverted with reason string 'Upgrade not authorized'", "Invalid error message");
+        }
+        
     });
 }); 
