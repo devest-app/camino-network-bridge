@@ -14,8 +14,8 @@ contract DvBridge is Initializable, UUPSUpgradeable, ValidatorSignatureManager, 
     bool public locked; // Time until the bridge is locked for transfers to non-validators
     uint256 public validator_fee; // Fee that validators receive for completing transfers (each of the validators gets the same amount)
 
-    mapping (string => bool) validatorFeeAndLockVotes;
-    mapping (string => bool) upgradeVotes;
+    mapping (string => bool) public validatorFeeAndLockVotes;
+    mapping (string => bool) public upgradeVotes;
 
     using ECDSA for bytes32; // Enable ECDSA operations on bytes32 types
     
@@ -210,7 +210,7 @@ contract DvBridge is Initializable, UUPSUpgradeable, ValidatorSignatureManager, 
         return true;
     }
 
-    function _authorizeUpgrade(address newImplementation) internal override onlyValidator(msg.sender) {
+    function _authorizeUpgrade(address /*newImplementation*/) internal override onlyValidator(msg.sender) {
         require(isUpgrading, "Upgrade not authorized");
         isUpgrading = false;
     }
